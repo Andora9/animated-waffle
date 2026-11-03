@@ -180,7 +180,7 @@ class ProductCard extends StatelessWidget {
 }
 
 SliverGridDelegate productGridDelegate() =>
-    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 14, childAspectRatio: .56);
+    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 14, childAspectRatio: .66);
 
 class FooterBlock extends StatelessWidget {
   const FooterBlock({super.key});

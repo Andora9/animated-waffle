@@ -114,14 +114,14 @@ class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
     decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFE9EDE4), Color(0xFFF5F6F1)])),
     padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
     child: Material(
-      color: Colors.white, elevation: overlapsContent ? 4 : 1,
-      shadowColor: const Color(0x1A000000), borderRadius: BorderRadius.circular(25),
+      color: Colors.transparent, elevation: 0,
+      shadowColor: Colors.transparent, borderRadius: BorderRadius.circular(25),
       child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(25),
         child: Container(height: 52, padding: const EdgeInsets.symmetric(horizontal: 17),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(25),
             gradient: const LinearGradient(colors: [Color(0xFFFFFFFF), Color(0xFFF1F3ED)]),
-            border: Border.all(color: const Color(0xFFDDE1D7)),
+            border: Border.all(color: const Color(0xFFE5E9DF), width: .7),
           ),
           child: Row(children: [
             const Icon(Icons.search_rounded, size: 23, color: Color(0xFF30352D)),
@@ -366,7 +366,7 @@ class WishlistScreen extends StatelessWidget {
     return Scaffold(appBar: AppBar(title: const Text('Saved products')),
       body: list.isEmpty ? const EmptyState(title: 'Nothing saved yet', subtitle: 'Tap the heart on a product to save it.', icon: Icons.favorite_border)
         : GridView.builder(padding: const EdgeInsets.all(14), itemCount: list.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, childAspectRatio: .56),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, childAspectRatio: .66),
             itemBuilder: (c, i) => ProductCard(product: list[i], index: i)));
   }
 }
