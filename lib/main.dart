@@ -16,7 +16,7 @@ Future<void> main() async {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
-    systemNavigationBarColor: pageBg,
+    systemNavigationBarColor: Colors.white,
     systemNavigationBarIconBrightness: Brightness.dark,
   ));
   final store = StoreController();
@@ -34,6 +34,7 @@ class ZenvoraApp extends StatelessWidget {
   ThemeData _theme(Color ac, bool dark) => ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: pageBg,
+        cardColor: Colors.white,
         colorScheme: ColorScheme.light(primary: ac, onPrimary: Colors.white, secondary: ac, surface: Colors.white, onSurface: ink, error: danger),
         appBarTheme: AppBarTheme(
           systemOverlayStyle: dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
@@ -88,12 +89,12 @@ class ZenvoraApp extends StatelessWidget {
           builder: (context, _) => MaterialApp(
             title: store.settings.appName,
             debugShowCheckedModeBanner: false,
-            theme: _theme(ink, store.dark),
+            theme: _theme(const Color(0xFF171717), store.dark),
             builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
               value: SystemUiOverlayStyle(
                 statusBarColor: Colors.transparent,
                 statusBarIconBrightness: store.dark ? Brightness.light : Brightness.dark,
-                systemNavigationBarColor: store.dark ? Colors.black : pageBg,
+                systemNavigationBarColor: store.dark ? Colors.black : Colors.white,
                 systemNavigationBarIconBrightness: store.dark ? Brightness.light : Brightness.dark,
               ),
               child: store.dark ? ColorFiltered(colorFilter: kDarkFilter, child: child!) : child!,

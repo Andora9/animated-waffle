@@ -258,123 +258,69 @@ class ProductCard extends StatelessWidget {
     final p = product;
     final fav = s.favourites.contains(p.id);
     final out = p.stock <= 0;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFBEA8A7).withOpacity(.55)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0A2A0800), blurRadius: 12, offset: Offset(0, 4)),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Container(
-                  color: const Color(0xFFFADBD8).withOpacity(.45),
-                  child: NetImage(
-                    url: p.images.isEmpty ? '' : p.images.first,
-                    fallback: iconFallback(s.iconKeyFor(p.category)),
-                  ),
+    return GestureDetector(
+      onTap: () => openProduct(context, p),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE1E1E1), width: .8),
+          boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 14, offset: Offset(0, 5))],
+        ),
+        padding: const EdgeInsets.all(8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Inner 3:4 image container; wishlist is kept inside the image area.
+          AspectRatio(
+            aspectRatio: 3 / 4,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(fit: StackFit.expand, children: [
+                Container(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: index.isEven ? const [Color(0xFFF2F2F2), Color(0xFFE4E4E4)] : const [Color(0xFFEAEAEA), Color(0xFFF7F7F7)])),
+                  child: NetImage(url: p.images.isEmpty ? '' : p.images.first, fallback: iconFallback(s.iconKeyFor(p.category))),
                 ),
                 Positioned(
-                  right: 9,
-                  top: 9,
+                  top: 8,
+                  right: 8,
                   child: Material(
                     color: Colors.white.withOpacity(.96),
                     shape: const CircleBorder(),
                     child: InkWell(
                       customBorder: const CircleBorder(),
                       onTap: () => s.toggleFavourite(p.id),
-                      child: SizedBox(
-                        width: 34,
-                        height: 34,
-                        child: Icon(
-                          fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                          size: 18,
-                          color: fav ? const Color(0xFF8B2635) : ink,
-                        ),
-                      ),
+                      child: Padding(padding: const EdgeInsets.all(8), child: Icon(fav ? Icons.favorite_rounded : Icons.favorite_border_rounded, size: 17, color: fav ? const Color(0xFF111111) : const Color(0xFF303030))),
                     ),
                   ),
                 ),
                 if (out)
-                  Container(
-                    color: const Color(0x66FFFFFF),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'OUT OF STOCK',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: danger),
-                    ),
-                  ),
-              ],
+                  Container(color: const Color(0x66FFFFFF), alignment: Alignment.center, child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ink))),
+              ]),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  p.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, height: 1.2, fontWeight: FontWeight.w800, color: ink),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  p.brand.isEmpty ? 'Zenvora' : p.brand,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '₹${p.price}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: ink),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    SizedBox(
-                      height: 32,
-                      child: FilledButton(
-                        onPressed: () => openProduct(context, p),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: ink,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 13),
-                          minimumSize: const Size(0, 32),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-                        ),
-                        child: const Text('View', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+          const SizedBox(height: 10),
+          Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, height: 1.2, fontWeight: FontWeight.w800, color: ink)),
+          const SizedBox(height: 4),
+          Text(p.brand.isEmpty ? 'Zenvora Select' : p.brand, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: muted, letterSpacing: .25)),
+          const Spacer(),
+          Row(children: [
+            Expanded(child: Text('₹${p.price}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: ink))),
+            const SizedBox(width: 5),
+            SizedBox(
+              height: 32,
+              child: FilledButton(
+                onPressed: () => openProduct(context, p),
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF171717), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12), minimumSize: Size.zero, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('View', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)), SizedBox(width: 3), Icon(Icons.arrow_outward_rounded, size: 12)]),
+              ),
             ),
-          ),
-        ],
+          ]),
+        ]),
       ),
     );
   }
 }
 
 SliverGridDelegate productGridDelegate() =>
-    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, childAspectRatio: .62);
+    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 14, childAspectRatio: .49);
 
 // ------------------------------------------------------------------ FOOTER
 class FooterBlock extends StatelessWidget {

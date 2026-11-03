@@ -7,19 +7,19 @@ import 'config.dart';
 // Baad mein Admin > Staff se isko badal sakte ho.
 
 // ---------------------------------------------------------------- COLORS
-const Color ink = Color(0xFF2A0800);
-const Color muted = Color(0xFF775144);
-const Color line = Color(0xFFBEA8A7);
-const Color pageBg = Color(0xFFFFF9F8);
-const Color danger = Color(0xFF9B2929);
-const Color success = Color(0xFF526A54);
+const Color ink = Color(0xFF151515);
+const Color muted = Color(0xFF777777);
+const Color line = Color(0xFFD6D6D6);
+const Color pageBg = Color(0xFFF4F4F4);
+const Color danger = Color(0xFFDC2626);
+const Color success = Color(0xFF059669);
 
-/// Warm monochrome palette: espresso, cocoa, dusty rose and soft blush.
+/// Light gray, light green, light pink, light blue
 const List<List<Color>> softGradients = [
-  [Color(0xFFFFF9F8), Color(0xFFFADBD8)],
-  [Color(0xFFFDF4F2), Color(0xFFF1DEDB)],
-  [Color(0xFFF9EFED), Color(0xFFE8D7D4)],
-  [Color(0xFFFDF8F7), Color(0xFFBEA8A7)],
+  [Color(0xFFF8F8F8), Color(0xFFEAEAEA)],
+  [Color(0xFFF1F1F1), Color(0xFFE2E2E2)],
+  [Color(0xFFF7F7F7), Color(0xFFE7E7E7)],
+  [Color(0xFFEFEFEF), Color(0xFFE1E1E1)],
 ];
 
 LinearGradient softGradient(int i) => LinearGradient(
@@ -35,12 +35,11 @@ BoxDecoration softBox(int i, {double radius = 18, bool border = true}) => BoxDec
     );
 
 const List<MapEntry<String, Color>> accentPalette = [
-  MapEntry('Espresso', Color(0xFF2A0800)),
-  MapEntry('Cocoa', Color(0xFF775144)),
-  MapEntry('Dusty Rose', Color(0xFFC09891)),
-  MapEntry('Mauve Grey', Color(0xFFBEA8A7)),
-  MapEntry('Soft Blush', Color(0xFFFADBD8)),
-  MapEntry('Charcoal', Color(0xFF332521)),
+  MapEntry('Monochrome', Color(0xFF171717)),
+  MapEntry('Graphite', Color(0xFF303030)),
+  MapEntry('Slate', Color(0xFF555555)),
+  MapEntry('Silver', Color(0xFF777777)),
+  MapEntry('Black', Color(0xFF101010)),
 ];
 
 const Map<String, IconData> iconRegistry = {
