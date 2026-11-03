@@ -27,6 +27,32 @@ const Set<String> _legacyDemoProductNames = {
   'Kids Graphic Tee', 'Everyday Sneakers',
 };
 
+/// Order status flow (vertical timeline order)
+const List<String> kOrderFlow = [
+  'Placed',
+  'Confirmed',
+  'Packed',
+  'Shipped',
+  'Out for delivery',
+  'Delivered',
+];
+
+/// One row of the vertical order-status timeline
+class TimelineStep {
+  final String title;
+  final String subtitle;
+  final String date; // formatted, '' if not reached yet
+  final String state; // done | current | pending | cancelled
+  const TimelineStep(this.title, this.subtitle, this.date, this.state);
+}
+
+/// Price breakup of an order (Subtotal, coupon, delivery, platform fee, GST, total)
+class OrderBreakdown {
+  final int subtotal, coupon, shipping, platformFee, gstPct, gst, total;
+  const OrderBreakdown(this.subtotal, this.coupon, this.shipping,
+      this.platformFee, this.gstPct, this.gst, this.total);
+}
+
 class StoreController extends ChangeNotifier {
   late SharedPreferences prefs;
 
@@ -59,10 +85,14 @@ class StoreController extends ChangeNotifier {
   String noticesSeen = '';
   bool _pinTried = false;
 
+  // Fees (Rs / %) - change via setFees()
+  int platformFee = 5;
+  int gstPercent = 18;
+
   // login (Supabase)
   String authUserId = '', authEmail = '', _refresh = '';
   String? _serverAdminRole;
-  Map<String, dynamic> adminPermissions = {}; 
+  Map<String, dynamic> adminPermissions = {};
   DateTime _tokenTime = DateTime.fromMillisecondsSinceEpoch(0);
   Timer? _catalogTimer;
 
@@ -86,9 +116,10 @@ class StoreController extends ChangeNotifier {
   Future<void> load() async {
     prefs = await SharedPreferences.getInstance();
     products = _readList('z2_products', Product.fromJson, () => <Product>[]);
-    categories =
-        _readList('z2_categories', CategoryItem.fromJson, () => <CategoryItem>[]);
-    banners = _readList('z2_banners', BannerItem.fromJson, () => <BannerItem>[]);
+    categories = _readList(
+        'z2_categories', CategoryItem.fromJson, () => <CategoryItem>[]);
+    banners =
+        _readList('z2_banners', BannerItem.fromJson, () => <BannerItem>[]);
     coupons = _readList('z2_coupons', Coupon.fromJson, () => <Coupon>[]);
     reviews = _readList('z2_reviews', Review.fromJson, () => <Review>[]);
     admins = _readList('z2_admins', AdminUser.fromJson, () => <AdminUser>[])
@@ -103,9 +134,10 @@ class StoreController extends ChangeNotifier {
           .map((e) => (e as num).toInt())
           .toSet();
       final s = prefs.getString('z2_settings');
-      if (s != null)
+      if (s != null) {
         settings = StoreSettings.fromJson(
             Map<String, dynamic>.from(jsonDecode(s) as Map));
+      }
     } catch (_) {}
     customerName = prefs.getString('z_name') ?? '';
     customerEmail = prefs.getString('z_email') ?? '';
@@ -121,10 +153,15 @@ class StoreController extends ChangeNotifier {
     authUserId = prefs.getString('z3_uid') ?? '';
     authEmail = prefs.getString('z3_auth_email') ?? '';
     _refresh = prefs.getString('z3_refresh') ?? '';
+    platformFee = prefs.getInt('z4_platform_fee') ?? 5;
+    gstPercent = prefs.getInt('z4_gst_pct') ?? 18;
     // No demo products, coupons, banners or local owner credentials are seeded.
     // Existing customer-created local data is preserved.
-    products.removeWhere((p) => _legacyDemoProductNames.contains(p.name) && p.sku == 'ZN-${p.id}');
-    coupons.removeWhere((c) => (c.code.toUpperCase() == 'WELCOME10' && c.title == 'Welcome offer') || (c.code.toUpperCase() == 'FLAT100' && c.title == 'Flat Rs 100 off'));
+    products.removeWhere((p) =>
+        _legacyDemoProductNames.contains(p.name) && p.sku == 'ZN-${p.id}');
+    coupons.removeWhere((c) =>
+        (c.code.toUpperCase() == 'WELCOME10' && c.title == 'Welcome offer') ||
+        (c.code.toUpperCase() == 'FLAT100' && c.title == 'Flat Rs 100 off'));
   }
 
   Future<void> _save() async {
@@ -159,6 +196,8 @@ class StoreController extends ChangeNotifier {
     await prefs.setString('z3_uid', authUserId);
     await prefs.setString('z3_auth_email', authEmail);
     await prefs.setString('z3_refresh', _refresh);
+    await prefs.setInt('z4_platform_fee', platformFee);
+    await prefs.setInt('z4_gst_pct', gstPercent);
     if (appliedCoupon == null) {
       await prefs.remove('z2_coupon');
     } else {
@@ -170,13 +209,21 @@ class StoreController extends ChangeNotifier {
   Future<void> commit() async {
     notifyListeners();
     await _save();
-    if (isAdmin && adminUnlocked && AppConfig.supabaseReady && isLoggedIn)
+    if (isAdmin && adminUnlocked && AppConfig.supabaseReady && isLoggedIn) {
       _scheduleCatalogPush();
+    }
   }
 
   // ------------------------------------------------------------ THEME
   Future<void> setDark(bool v) async {
     dark = v;
+    await commit();
+  }
+
+  // ------------------------------------------------------------ FEES
+  Future<void> setFees({int? platform, int? gstPct}) async {
+    if (platform != null && platform >= 0) platformFee = platform;
+    if (gstPct != null && gstPct >= 0 && gstPct <= 100) gstPercent = gstPct;
     await commit();
   }
 
@@ -251,7 +298,8 @@ class StoreController extends ChangeNotifier {
     await commit();
     await syncCloud();
     final deviceTokenError = await PushNotifications.registerCurrentDevice();
-    print('POST-LOGIN DEVICE TOKEN SAVE: ${deviceTokenError ?? "SUCCESS"}');
+    debugPrint(
+        'POST-LOGIN DEVICE TOKEN SAVE: ${deviceTokenError ?? "SUCCESS"}');
   }
 
   Future<void> logout() async {
@@ -303,7 +351,8 @@ class StoreController extends ChangeNotifier {
         query: {'key': 'eq.catalog', 'select': 'data'});
     if (cat != null) {
       if (cat.isNotEmpty) {
-        final cleanedDemoCatalog = _applyCatalog(Map<String, dynamic>.from(cat.first['data'] as Map));
+        final cleanedDemoCatalog =
+            _applyCatalog(Map<String, dynamic>.from(cat.first['data'] as Map));
         if (cleanedDemoCatalog && isAdmin) await _pushCatalog();
       } else if (isAdmin && isLoggedIn) {
         await _pushCatalog();
@@ -346,8 +395,9 @@ class StoreController extends ChangeNotifier {
         'select': 'user_id,active_until',
         'user_id': 'eq.$authUserId'
       });
-      if (m != null)
+      if (m != null) {
         membershipUntil = m.isEmpty ? '' : '${m.first['active_until']}';
+      }
 
       if (isAdmin) {
         final all = await Cloud.select('orders', query: {
@@ -388,12 +438,21 @@ class StoreController extends ChangeNotifier {
               .toList();
       final rawProducts = list('products', Product.fromJson);
       final p = rawProducts
-        ..removeWhere((x) => _legacyDemoProductNames.contains(x.name) && x.sku == 'ZN-${x.id}');
+        ..removeWhere((x) =>
+            _legacyDemoProductNames.contains(x.name) && x.sku == 'ZN-${x.id}');
       final c = list('categories', CategoryItem.fromJson);
       final rawBanners = list('banners', BannerItem.fromJson);
-      final b = rawBanners..removeWhere((x) => x.image.trim().isEmpty && ['Fashion', 'Accessories', 'Home'].contains(x.category));
+      final b = rawBanners
+        ..removeWhere((x) =>
+            x.image.trim().isEmpty &&
+            ['Fashion', 'Accessories', 'Home'].contains(x.category));
       final rawCoupons = list('coupons', Coupon.fromJson);
-      final cp = rawCoupons..removeWhere((x) => (x.code.toUpperCase() == 'WELCOME10' && x.title == 'Welcome offer') || (x.code.toUpperCase() == 'FLAT100' && x.title == 'Flat Rs 100 off'));
+      final cp = rawCoupons
+        ..removeWhere((x) =>
+            (x.code.toUpperCase() == 'WELCOME10' &&
+                x.title == 'Welcome offer') ||
+            (x.code.toUpperCase() == 'FLAT100' &&
+                x.title == 'Flat Rs 100 off'));
       final st = StoreSettings.fromJson(
           Map<String, dynamic>.from((j['settings'] as Map?) ?? const {}));
       products = p;
@@ -401,7 +460,9 @@ class StoreController extends ChangeNotifier {
       banners = b;
       coupons = cp;
       settings = st;
-      return p.length != rawProducts.length || b.length != rawBanners.length || cp.length != rawCoupons.length;
+      return p.length != rawProducts.length ||
+          b.length != rawBanners.length ||
+          cp.length != rawCoupons.length;
     } catch (_) {
       return false;
     }
@@ -440,7 +501,8 @@ class StoreController extends ChangeNotifier {
     });
     if (rows != null && rows.isNotEmpty && rows.first['active'] == true) {
       _serverAdminRole = '${rows.first['role'] ?? ''}';
-      adminPermissions = Map<String, dynamic>.from((rows.first['permissions'] as Map?) ?? const {});
+      adminPermissions = Map<String, dynamic>.from(
+          (rows.first['permissions'] as Map?) ?? const {});
     } else {
       _serverAdminRole = null;
       adminPermissions = {};
@@ -470,10 +532,15 @@ class StoreController extends ChangeNotifier {
   bool get isAdmin => currentAdmin != null;
   bool canManage(String permission) {
     if (isOwner) return true;
-    if (_serverAdminRole == 'staff') return permission == 'products.manage' || permission == 'orders.manage';
-    return adminPermissions[permission] == true || adminPermissions['*'] == true;
+    if (_serverAdminRole == 'staff') {
+      return permission == 'products.manage' || permission == 'orders.manage';
+    }
+    return adminPermissions[permission] == true ||
+        adminPermissions['*'] == true;
   }
-  bool get isOwner => currentAdmin?.role == 'owner' || currentAdmin?.role == 'super_admin';
+
+  bool get isOwner =>
+      currentAdmin?.role == 'owner' || currentAdmin?.role == 'super_admin';
 
   bool unlockAdmin(String pin) {
     // Admin access is tied to the authenticated account; never rely on a hard-coded app PIN.
@@ -505,8 +572,9 @@ class StoreController extends ChangeNotifier {
   List<String> get brands {
     final out = <String>[];
     for (final p in products) {
-      if (p.active && p.brand.isNotEmpty && !out.contains(p.brand))
+      if (p.active && p.brand.isNotEmpty && !out.contains(p.brand)) {
         out.add(p.brand);
+      }
     }
     return out;
   }
@@ -535,12 +603,15 @@ class StoreController extends ChangeNotifier {
                     .contains(qq)))
         .toList();
     final so = sortBy ?? sort;
-    if (so == 'Price: Low to High')
+    if (so == 'Price: Low to High') {
       list.sort((a, b) => a.price.compareTo(b.price));
-    if (so == 'Price: High to Low')
+    }
+    if (so == 'Price: High to Low') {
       list.sort((a, b) => b.price.compareTo(a.price));
-    if (so == 'Top Rated')
+    }
+    if (so == 'Top Rated') {
       list.sort((a, b) => ratingOf(b.id).compareTo(ratingOf(a.id)));
+    }
     return list;
   }
 
@@ -585,8 +656,9 @@ class StoreController extends ChangeNotifier {
 
   /// null = ok, warna error message
   Future<String?> addReview(int pid, int rating, String text) async {
-    if (!hasPurchased(pid))
+    if (!hasPurchased(pid)) {
       return 'Only customers who ordered this product can review it.';
+    }
     if (hasReviewed(pid)) return 'You have already reviewed this product.';
     final nm = customerName.isEmpty ? 'Customer' : customerName;
     if (AppConfig.supabaseReady && isLoggedIn) {
@@ -623,8 +695,6 @@ class StoreController extends ChangeNotifier {
   int get memberDaysLeft =>
       isMember ? membershipEnds!.difference(DateTime.now()).inDays + 1 : 0;
 
-
-
   // ------------------------------------------------------------ CART + PRICING
   List<CartLine> get cartLines =>
       cart.where((l) => productById(l.pid) != null).toList();
@@ -660,7 +730,19 @@ class StoreController extends ChangeNotifier {
       ? 0
       : settings.shippingFee;
   int get shipping => isMember ? 0 : normalShipping;
-  int get total => subtotal - couponDiscount + shipping;
+
+  /// Platform fee (empty cart par 0)
+  int get platformFeeAmount => subtotal == 0 ? 0 : platformFee;
+
+  /// GST on (subtotal - coupon)
+  int get gstAmount {
+    final base = subtotal - couponDiscount;
+    if (base <= 0) return 0;
+    return (base * gstPercent / 100).round();
+  }
+
+  int get total =>
+      subtotal - couponDiscount + shipping + platformFeeAmount + gstAmount;
   int get etaDays => isMember ? settings.etaDaysMember : settings.etaDays;
 
   Future<void> addToCart(int pid, {String size = '', String color = ''}) async {
@@ -696,8 +778,9 @@ class StoreController extends ChangeNotifier {
     final c = code.trim().toLowerCase();
     for (final x in coupons) {
       if (x.code.toLowerCase() == c && x.active) {
-        if (subtotal < x.minOrder)
+        if (subtotal < x.minOrder) {
           return 'Add items worth ₹${x.minOrder - subtotal} more to use this coupon';
+        }
         appliedCoupon = x.code;
         await commit();
         return null;
@@ -833,6 +916,9 @@ class StoreController extends ChangeNotifier {
       'couponDiscount': couponDiscount,
       'coupon': appliedCoupon ?? '',
       'shipping': shipping,
+      'platformFee': platformFeeAmount,
+      'gstPct': gstPercent,
+      'gst': gstAmount,
       'total': total,
       'payment': payment,
       'paymentId': paymentId,
@@ -892,6 +978,95 @@ class StoreController extends ChangeNotifier {
           'orders', {'id': 'eq.$id'}, {'status': status, 'data': data});
     }
     await commit();
+  }
+
+  // ------------------------------------------------------------ ORDER DETAILS (breakup + delivery rows)
+  int _n(dynamic v) => v is num ? v.toInt() : int.tryParse('$v') ?? 0;
+
+  /// Price breakup of a saved order. Old orders (without the new fields)
+  /// still work: missing fees show as 0 and GST is derived from total.
+  OrderBreakdown breakdownOf(Map<String, dynamic> o) {
+    final sub = _n(o['subtotal']);
+    final cpn = _n(o['couponDiscount']);
+    final ship = _n(o['shipping']);
+    final fee = _n(o['platformFee']);
+    final tot = _n(o['total']);
+    final pct = o['gstPct'] == null ? 0 : _n(o['gstPct']);
+    final gst = o['gst'] != null
+        ? _n(o['gst'])
+        : (tot - (sub - cpn + ship + fee)).clamp(0, 1 << 31).toInt();
+    return OrderBreakdown(sub, cpn, ship, fee, pct, gst, tot);
+  }
+
+  /// "9:30am, 16 Jan 2026"
+  String formatStamp(dynamic iso) {
+    final d = DateTime.tryParse('${iso ?? ''}')?.toLocal();
+    if (d == null) return '';
+    const m = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final h12 = d.hour % 12 == 0 ? 12 : d.hour % 12;
+    final ap = d.hour >= 12 ? 'pm' : 'am';
+    final mm = d.minute.toString().padLeft(2, '0');
+    return '$h12:$mm$ap, ${d.day} ${m[d.month - 1]} ${d.year}';
+  }
+
+  /// "Samsung TV x1, Shoes x2"
+  String itemsSummary(Map<String, dynamic> o) {
+    final l = ((o['items'] as List?) ?? const []).map((raw) {
+      final it = raw as Map;
+      return '${it['name']} x${it['qty']}';
+    }).toList();
+    return l.isEmpty ? '-' : l.join(', ');
+  }
+
+  /// Vertical timeline steps for an order (with real time from history)
+  List<TimelineStep> timelineFor(Map<String, dynamic> o) {
+    final status = '${o['status'] ?? 'Placed'}';
+    final hist = ((o['history'] as List?) ?? const [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    String dateOf(String st) {
+      for (final h in hist.reversed) {
+        if ('${h['status']}' == st) return formatStamp(h['date']);
+      }
+      return '';
+    }
+
+    final out = <TimelineStep>[];
+    if (status == 'Cancelled') {
+      for (final st in kOrderFlow) {
+        final d = dateOf(st);
+        if (d.isNotEmpty) out.add(TimelineStep(st, _statusText[st] ?? st, d, 'done'));
+      }
+      if (out.isEmpty) {
+        out.add(TimelineStep('Placed', _statusText['Placed']!,
+            formatStamp(o['date']), 'done'));
+      }
+      out.add(TimelineStep('Cancelled', _statusText['Cancelled']!,
+          dateOf('Cancelled'), 'cancelled'));
+      return out;
+    }
+
+    var idx = kOrderFlow.indexOf(status);
+    if (idx < 0) idx = 0;
+    for (var i = 0; i < kOrderFlow.length; i++) {
+      final st = kOrderFlow[i];
+      var d = dateOf(st);
+      if (i == 0 && d.isEmpty) d = formatStamp(o['date']);
+      String state;
+      if (i < idx || (i == idx && st == 'Delivered')) {
+        state = 'done';
+      } else if (i == idx) {
+        state = 'current';
+      } else {
+        state = 'pending';
+      }
+      out.add(TimelineStep(
+          st, _statusText[st] ?? st, state == 'pending' ? '' : d, state));
+    }
+    return out;
   }
 
   // ------------------------------------------------------------ SUPPORT
@@ -971,4 +1146,250 @@ class StoreController extends ChangeNotifier {
   List<Product> get outOfStock => products.where((p) => p.stock <= 0).toList();
   List<Coupon> get notifications =>
       coupons.where((c) => c.active && c.notify).toList();
+}
+
+// ==================================================================
+// UI WIDGETS (order details screen me direct use karo)
+//   DeliveryDetailsCard(order: o)   -> Delivery + price breakup card
+//   OrderStatusTimeline(order: o)   -> Vertical professional timeline
+// ==================================================================
+
+class DeliveryDetailsCard extends StatelessWidget {
+  final Map<String, dynamic> order;
+  const DeliveryDetailsCard({super.key, required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = StoreScope.of(context);
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final b = s.breakdownOf(order);
+    final outer = isDark ? const Color(0xFF1E2430) : const Color(0xFFEEF2FB);
+    final inner = isDark ? const Color(0xFF12151C) : Colors.white;
+    final muted = cs.onSurface.withOpacity(0.6);
+
+    Widget row(String k, String v,
+        {Color? vColor, bool bold = false, IconData? icon}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(k, style: TextStyle(fontSize: 13, color: muted)),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, size: 15, color: vColor),
+                    const SizedBox(width: 4),
+                  ],
+                  Flexible(
+                    child: Text(v,
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+                            color: vColor ?? cs.onSurface)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final divider = Divider(height: 14, color: cs.onSurface.withOpacity(0.08));
+    final payment = '${order['payment'] ?? ''}';
+    final memberFree = order['member'] == true && b.shipping == 0;
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: outer,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(6, 4, 6, 10),
+            child: Row(children: [
+              Icon(Icons.local_shipping_rounded, size: 20, color: muted),
+              const SizedBox(width: 8),
+              Text('Delivery Details',
+                  style: TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w600, color: muted)),
+            ]),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+                color: inner, borderRadius: BorderRadius.circular(16)),
+            child: Column(children: [
+              row('Receiver', '${order['name'] ?? '-'}', bold: true),
+              row('Address', '${order['address'] ?? '-'}', bold: true),
+              row('Contact', '${order['phone'] ?? '-'}', bold: true),
+              row('Item', s.itemsSummary(order), bold: true),
+              if (payment.isNotEmpty) row('Payment', payment, bold: true),
+              divider,
+              row('Subtotal', '₹${b.subtotal}'),
+              if (b.coupon > 0)
+                row('Coupon${'${order['coupon'] ?? ''}'.isEmpty ? '' : ' (${order['coupon']})'}',
+                    '- ₹${b.coupon}',
+                    vColor: Colors.green.shade600),
+              row('Delivery charges',
+                  b.shipping == 0 ? (memberFree ? 'FREE (Member)' : 'FREE') : '₹${b.shipping}',
+                  vColor: b.shipping == 0 ? Colors.green.shade600 : null),
+              row('Platform fee', b.platformFee == 0 ? '₹0' : '₹${b.platformFee}'),
+              row(b.gstPct > 0 ? 'GST (${b.gstPct}%)' : 'GST', '₹${b.gst}'),
+              divider,
+              row('Total paid', '₹${b.total}', bold: true),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class OrderStatusTimeline extends StatelessWidget {
+  final Map<String, dynamic> order;
+  const OrderStatusTimeline({super.key, required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = StoreScope.of(context);
+    final cs = Theme.of(context).colorScheme;
+    final steps = s.timelineFor(order);
+    final ink = cs.onSurface;
+    final grey = cs.onSurface.withOpacity(0.18);
+    const red = Color(0xFFE53935);
+
+    Widget dot(TimelineStep st) {
+      switch (st.state) {
+        case 'done':
+          return Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(color: ink, shape: BoxShape.circle),
+            child: Icon(Icons.check_rounded, size: 15, color: cs.surface),
+          );
+        case 'current':
+          return Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: cs.surface,
+                border: Border.all(color: ink, width: 2.5)),
+            child: Center(
+              child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: ink, shape: BoxShape.circle)),
+            ),
+          );
+        case 'cancelled':
+          return Container(
+            width: 24,
+            height: 24,
+            decoration: const BoxDecoration(color: red, shape: BoxShape.circle),
+            child: const Icon(Icons.close_rounded, size: 15, color: Colors.white),
+          );
+        default:
+          return Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(color: grey, shape: BoxShape.circle));
+      }
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+      decoration: BoxDecoration(
+        color: cs.onSurface.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Order Status',
+              style: TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.w800, color: ink)),
+          const SizedBox(height: 16),
+          for (var i = 0; i < steps.length; i++)
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    width: 24,
+                    child: Column(children: [
+                      dot(steps[i]),
+                      if (i != steps.length - 1)
+                        Expanded(
+                          child: Container(
+                            width: 2.5,
+                            margin: const EdgeInsets.symmetric(vertical: 2),
+                            decoration: BoxDecoration(
+                              color: steps[i].state == 'done' &&
+                                      steps[i + 1].state != 'pending'
+                                  ? (steps[i + 1].state == 'cancelled' ? red : ink)
+                                  : grey,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                    ]),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                          bottom: i == steps.length - 1 ? 0 : 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(steps[i].title,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: steps[i].state == 'pending'
+                                      ? FontWeight.w500
+                                      : FontWeight.w800,
+                                  color: steps[i].state == 'cancelled'
+                                      ? red
+                                      : steps[i].state == 'pending'
+                                          ? ink.withOpacity(0.4)
+                                          : ink)),
+                          if (steps[i].state != 'pending') ...[
+                            const SizedBox(height: 2),
+                            Text(steps[i].subtitle,
+                                style: TextStyle(
+                                    fontSize: 12.5,
+                                    height: 1.3,
+                                    color: ink.withOpacity(0.65))),
+                          ],
+                          if (steps[i].date.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(steps[i].date,
+                                style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: ink.withOpacity(0.45))),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
