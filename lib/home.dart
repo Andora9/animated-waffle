@@ -17,113 +17,169 @@ class HomeScreen extends StatelessWidget {
     final products = s.listProducts(brand: s.selectedBrand);
     final notifCount = s.unreadNotices;
 
-    return CustomScrollView(slivers: [
-      // header: logo + name, search, notifications
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 12, 10, 8),
-          child: Row(children: [
-            const BrandLogo(size: 42),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(s.settings.appName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.6)),
-                Text(s.settings.tagline, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: muted, fontSize: 11)),
-              ]),
-            ),
-            IconButton(
-              tooltip: 'Search',
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
-              icon: const Icon(Icons.search_rounded),
-            ),
-            IconButton(
-              tooltip: 'Notifications',
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
-              icon: Badge(isLabelVisible: notifCount > 0, label: Text('$notifCount'), child: const Icon(Icons.notifications_none_rounded)),
-            ),
-          ]),
-        ),
-      ),
-
-      // auto delivery PIN
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 4, 18, 12),
-          child: GestureDetector(
-            onTap: () => showPinSheet(context),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-              decoration: softBox(3, radius: 14),
-              child: Row(children: [
-                const Icon(Icons.location_on_outlined, size: 18),
-                const SizedBox(width: 8),
+    return CustomScrollView(
+      slivers: [
+        // Compact delivery location + rewards summary. This area scrolls away.
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 12, 14, 12),
+            child: Row(
+              children: [
                 Expanded(
-                  child: Text(
-                    s.pincode.isEmpty ? 'Detecting your delivery location...' : 'Deliver to ${s.city.isEmpty ? '' : '${s.city} - '}${s.pincode}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                  child: GestureDetector(
+                    onTap: () => showPinSheet(context),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined, size: 20, color: ink),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('DELIVER TO', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.25, color: muted)),
+                              const SizedBox(height: 2),
+                              Text(
+                                s.pincode.isEmpty
+                                    ? 'Choose your location'
+                                    : '${s.city.isEmpty ? 'Your location' : s.city} · ${s.pincode}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: ink),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.keyboard_arrow_down_rounded, size: 19, color: muted),
+                      ],
+                    ),
                   ),
                 ),
-                Text(s.isMember ? 'Express' : 'Change', style: const TextStyle(fontSize: 11, color: muted, fontWeight: FontWeight.w700)),
-                const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
-              ]),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF171717),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.monetization_on_outlined, size: 17, color: Colors.white),
+                      SizedBox(width: 6),
+                      Text('Rewards', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Notifications',
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                  icon: Badge(isLabelVisible: notifCount > 0, label: Text('$notifCount'), child: const Icon(Icons.notifications_none_rounded, color: ink)),
+                ),
+              ],
             ),
           ),
         ),
-      ),
 
-      // banner slider (image only, admin sets link)
-      if (s.banners.isNotEmpty) const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.symmetric(horizontal: 18), child: BannerSlider())),
-
-      // categories (sliding)
-      const SliverToBoxAdapter(child: SectionHeading(title: 'Shop by category')),
-      SliverToBoxAdapter(
-        child: SizedBox(
-          height: 104,
-          child: s.shownCategories.isEmpty
-              ? const Center(child: Text('Categories will appear here', style: TextStyle(color: muted, fontSize: 12)))
-              : ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  itemCount: s.shownCategories.length,
-                  itemBuilder: (c, i) => _CategoryTile(item: s.shownCategories[i], index: i),
+        // Search remains pinned at the top while the page scrolls.
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _PinnedSearchDelegate(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(15),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
+                  child: Container(
+                    height: 50,
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: const Color(0xFFDADADA)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.search_rounded, color: ink, size: 23),
+                        SizedBox(width: 11),
+                        Expanded(child: Text('Search products, brands and more', style: TextStyle(color: muted, fontSize: 13, fontWeight: FontWeight.w500))),
+                        Icon(Icons.tune_rounded, color: muted, size: 19),
+                      ],
+                    ),
+                  ),
                 ),
-        ),
-      ),
-
-      // brands
-      const SliverToBoxAdapter(child: SectionHeading(title: 'Current brands')),
-      SliverToBoxAdapter(
-        child: SizedBox(
-          height: 88,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            children: s.brands.map((b) => _BrandTile(name: b)).toList(),
+              ),
+            ),
           ),
         ),
-      ),
 
-      SliverToBoxAdapter(
-        child: SectionHeading(
-          title: s.selectedBrand == 'All' ? 'Popular products' : '${s.selectedBrand} collection',
-          action: 'Sort',
-          onTap: () => showSortSheet(context),
-        ),
-      ),
-      if (products.isEmpty)
-        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.symmetric(vertical: 30), child: EmptyState(title: 'No products found', subtitle: 'Try another brand or category.')))
-      else
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-          sliver: SliverGrid(
-            delegate: SliverChildBuilderDelegate((c, i) => ProductCard(product: products[i], index: i), childCount: products.length),
-            gridDelegate: productGridDelegate(),
+        // Categories are intentionally shown without individual card containers.
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 96,
+            child: s.shownCategories.isEmpty
+                ? const Center(child: Text('Categories will appear here', style: TextStyle(color: muted, fontSize: 12)))
+                : ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                    itemCount: s.shownCategories.length,
+                    itemBuilder: (c, i) => _CategoryTile(item: s.shownCategories[i], index: i),
+                  ),
           ),
         ),
-    ]);
+
+        if (s.banners.isNotEmpty)
+          const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.fromLTRB(16, 4, 16, 0), child: BannerSlider())),
+
+        const SliverToBoxAdapter(child: SectionHeading(title: 'Explore brands')),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 88,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              children: s.brands.map((b) => _BrandTile(name: b)).toList(),
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: SectionHeading(
+            title: s.selectedBrand == 'All' ? 'Popular products' : '${s.selectedBrand} collection',
+            action: 'Sort',
+            onTap: () => showSortSheet(context),
+          ),
+        ),
+        if (products.isEmpty)
+          const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.symmetric(vertical: 30), child: EmptyState(title: 'No products found', subtitle: 'Try another brand or category.')))
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+            sliver: SliverGrid(
+              delegate: SliverChildBuilderDelegate((c, i) => ProductCard(product: products[i], index: i), childCount: products.length),
+              gridDelegate: productGridDelegate(),
+            ),
+          ),
+      ],
+    );
   }
+}
+
+class _PinnedSearchDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  _PinnedSearchDelegate({required this.child});
+
+  @override
+  double get minExtent => 66;
+  @override
+  double get maxExtent => 66;
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) =>
+      ColoredBox(color: pageBg, child: child);
+  @override
+  bool shouldRebuild(covariant _PinnedSearchDelegate oldDelegate) => oldDelegate.child != child;
 }
 
 // ------------------------------------------------------------------ BANNER SLIDER
@@ -207,26 +263,21 @@ class _CategoryTile extends StatelessWidget {
   final CategoryItem item;
   final int index;
   const _CategoryTile({required this.item, required this.index});
+
   @override
   Widget build(BuildContext context) => GestureDetector(
         onTap: () => openCategory(context, item.name),
         child: SizedBox(
           width: 78,
-          child: Column(children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: line, width: 1.2),
-                boxShadow: const [BoxShadow(color: Color(0x0F000000), blurRadius: 10, offset: Offset(0, 4))],
-              ),
-              child: Icon(iconFor(item.icon), size: 25, color: ink),
-            ),
-            const SizedBox(height: 8),
-            Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: .2)),
-          ]),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(iconFor(item.icon), size: 27, color: ink),
+              const SizedBox(height: 8),
+              Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: ink)),
+            ],
+          ),
         ),
       );
 }
