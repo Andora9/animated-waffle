@@ -72,7 +72,7 @@ class HomeScreen extends StatelessWidget {
           child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16),
             children: s.brands.map((b) => _BrandTile(name: b)).toList()),
         )),
-        const SliverToBoxAdapter(child: SectionHeading(title: 'New arrivals', action: 'Fresh picks'))
+        const SliverToBoxAdapter(child: SectionHeading(title: 'New arrivals', action: 'Fresh picks')) ,
         if (products.isEmpty)
           const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.symmetric(vertical: 30),
             child: EmptyState(title: 'No products found', subtitle: 'Try another brand or category.')))
