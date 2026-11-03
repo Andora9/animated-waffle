@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'models.dart';
 import 'store.dart';
 import 'widgets.dart';
+import 'cart.dart';
+import 'auth.dart';
 
 void openCategory(BuildContext context, String name) =>
     Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryProductsScreen(category: name)));
@@ -64,12 +66,13 @@ class HomeScreen extends StatelessWidget {
                   itemCount: s.shownCategories.length, itemBuilder: (c, i) => _CategoryTile(item: s.shownCategories[i], index: i)),
           ),
         ),
-        const SliverToBoxAdapter(child: SectionHeading(title: 'Featured brands', action: 'Explore')),
-        SliverToBoxAdapter(child: SizedBox(height: 106,
-          child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 14),
+        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.fromLTRB(16, 12, 16, 4), child: SalePromoBanner())),
+        const SliverToBoxAdapter(child: SectionHeading(title: 'Curated Brands', action: 'Explore')),
+        SliverToBoxAdapter(child: SizedBox(height: 82,
+          child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16),
             children: s.brands.map((b) => _BrandTile(name: b)).toList()),
         )),
-        const SliverToBoxAdapter(child: SectionHeading(title: 'New arrivals', action: 'Fresh picks')),
+        const SliverToBoxAdapter(child: SectionHeading(title: 'New arrivals', action: 'Fresh picks'))
         if (products.isEmpty)
           const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.symmetric(vertical: 30),
             child: EmptyState(title: 'No products found', subtitle: 'Try another brand or category.')))
@@ -107,28 +110,24 @@ class HomeScreen extends StatelessWidget {
 class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
   final VoidCallback onTap;
   _StickySearchDelegate({required this.onTap});
-  @override double get minExtent => 72;
-  @override double get maxExtent => 72;
+  @override double get minExtent => 64;
+  @override double get maxExtent => 64;
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => Container(
-    decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFE9EDE4), Color(0xFFF5F6F1)])),
-    padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+    padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
     child: Material(
-      color: Colors.white, elevation: overlapsContent ? 4 : 1,
+      color: const Color(0xFFFFFFFF), elevation: overlapsContent ? 2 : 0,
       shadowColor: const Color(0x1A000000), borderRadius: BorderRadius.circular(25),
       child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(25),
-        child: Container(height: 52, padding: const EdgeInsets.symmetric(horizontal: 17),
+        child: Container(height: 48, padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(25),
-            gradient: const LinearGradient(colors: [Color(0xFFFFFFFF), Color(0xFFF1F3ED)]),
-            border: Border.all(color: const Color(0xFFDDE1D7)),
+            color: Colors.white,
           ),
           child: Row(children: [
             const Icon(Icons.search_rounded, size: 23, color: Color(0xFF30352D)),
             const SizedBox(width: 12),
             const Expanded(child: Text('What are you looking for?', style: TextStyle(color: Color(0xFF8A8E85), fontSize: 13, fontWeight: FontWeight.w500))),
-            Container(width: 30, height: 30, decoration: const BoxDecoration(color: Color(0xFFE9EDE4), shape: BoxShape.circle),
-              child: const Icon(Icons.arrow_forward_rounded, size: 16, color: Color(0xFF333A2E))),
           ]),
         ),
       ),
@@ -161,17 +160,17 @@ class _BannerSliderState extends State<BannerSlider> {
   Widget build(BuildContext context) {
     final list = StoreScope.of(context).banners;
     final ac = accentOf(context);
-    Widget blankBanner() => ClipRRect(borderRadius: BorderRadius.circular(22), child: AspectRatio(aspectRatio: 4 / 3,
+    Widget blankBanner() => ClipRRect(borderRadius: BorderRadius.circular(20), child: SizedBox(height: 160, width: double.infinity,
       child: Stack(fit: StackFit.expand, children: [
         const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
           colors: [Color(0xFFBDCCA7), Color(0xFFE5EBDD), Color(0xFFD5DFCA)]))),
-        Padding(padding: const EdgeInsets.fromLTRB(20, 18, 20, 18), child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+        Padding(padding: const EdgeInsets.fromLTRB(18, 12, 110, 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center, children: [
             Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(color: Colors.white.withOpacity(.48), borderRadius: BorderRadius.circular(20)),
               child: const Text('ZEN VORA EDIT', style: TextStyle(color: Color(0xFF30392B), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.1))),
             const SizedBox(height: 10),
-            const Text('Discover Your\nEveryday Style', style: TextStyle(color: Color(0xFF20271D), fontSize: 25, height: 1.08, fontWeight: FontWeight.w900)),
+            const Text('Discover Your\nEveryday Style', style: TextStyle(color: Color(0xFF20271D), fontSize: 21, height: 1.08, fontWeight: FontWeight.w900)),
             const SizedBox(height: 13),
             Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: BoxDecoration(color: const Color(0xFF20251D), borderRadius: BorderRadius.circular(22)),
@@ -180,7 +179,7 @@ class _BannerSliderState extends State<BannerSlider> {
       ])));
     if (list.isEmpty) return Column(children: [blankBanner(), const SizedBox(height: 8)]);
     return Column(children: [
-      AspectRatio(aspectRatio: 4 / 3, child: ClipRRect(borderRadius: BorderRadius.circular(22),
+      SizedBox(height: 160, child: ClipRRect(borderRadius: BorderRadius.circular(20),
         child: PageView.builder(controller: controller, itemCount: list.length,
           onPageChanged: (v) => setState(() => page = v),
           itemBuilder: (c, i) {
@@ -231,45 +230,49 @@ class _CategoryTile extends StatelessWidget {
 class _BrandTile extends StatelessWidget {
   final String name;
   const _BrandTile({required this.name});
-
   @override
   Widget build(BuildContext context) {
     final s = StoreScope.of(context);
     final active = s.selectedBrand == name;
-    final ac = accentOf(context);
-    return GestureDetector(
-      onTap: () => s.setBrand(active ? 'All' : name),
-      child: Container(
-        width: 132,
-        margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-        padding: const EdgeInsets.fromLTRB(10, 9, 10, 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(17),
-          border: Border.all(color: active ? ac : const Color(0xFFE6E8E1), width: active ? 1.5 : 1),
-          boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 9, offset: Offset(0, 3))],
-        ),
-        child: Column(children: [
-          Expanded(child: Container(
-            width: double.infinity,
+    return GestureDetector(onTap: () => s.setBrand(active ? 'All' : name),
+      child: SizedBox(width: 68, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Container(width: 52, height: 48, alignment: Alignment.center,
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: active ? accentOf(context) : const Color(0xFFE8E8E4)),
+              boxShadow: const [BoxShadow(color: Color(0x09000000), blurRadius: 7, offset: Offset(0, 2))]),
             padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(color: const Color(0xFFF7F8F4), borderRadius: BorderRadius.circular(11)),
-            child: AssetPic(
-              path: 'assets/brands/${name.toLowerCase()}.png',
-              fallback: Center(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: .5, color: ink))),
-            ),
-          )),
-          const SizedBox(height: 6),
+            child: AssetPic(path: 'assets/brands/${name.toLowerCase()}.png',
+              fallback: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: ink)))),
+          const SizedBox(height: 5),
           Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 10, color: ink, fontWeight: FontWeight.w800, letterSpacing: .35)),
-        ]),
-      ),
-    );
+            style: TextStyle(fontSize: 10, fontWeight: active ? FontWeight.w800 : FontWeight.w600, color: const Color(0xFF333333))),
+        ]))));
   }
 }
 
-// CATEGORY PAGE
+class SalePromoBanner extends StatelessWidget {
+  const SalePromoBanner({super.key});
+  @override Widget build(BuildContext context) => ClipRRect(borderRadius: BorderRadius.circular(20),
+    child: Container(height: 112, width: double.infinity,
+      decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
+        colors: [Color(0xFFE7EEDC), Color(0xFFCBE2B4)])),
+      child: Stack(children: [
+        Positioned(right: -8, bottom: -20, child: Icon(Icons.shopping_bag_rounded, size: 138, color: Color(0x332F422A))),
+        Padding(padding: const EdgeInsets.fromLTRB(18, 13, 110, 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center, children: [
+            Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(color: const Color(0xFF20251D), borderRadius: BorderRadius.circular(15)),
+              child: const Text('LIMITED OFFER', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800))),
+            const SizedBox(height: 7),
+            const Text('First Purchase Enjoy\na Special Offer', style: TextStyle(color: Color(0xFF20251D), fontSize: 16, height: 1.12, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 7),
+            const Text('Shop Now  ↗', style: TextStyle(color: Color(0xFF20251D), fontSize: 10, fontWeight: FontWeight.w800)),
+          ])),
+      ])));
+}
+
 class CategoryProductsScreen extends StatelessWidget {
   final String category;
   const CategoryProductsScreen({super.key, required this.category});

@@ -125,90 +125,60 @@ void openProduct(BuildContext context, Product p) =>
 class ProductCard extends StatelessWidget {
   final Product product; final int index;
   const ProductCard({super.key, required this.product, this.index = 0});
-
-  @override
-  Widget build(BuildContext context) {
-    final s = StoreScope.of(context);
-    final p = product;
-    final fav = s.favourites.contains(p.id);
-    final out = p.stock <= 0;
-    final heroColors = <List<Color>>[
-      [const Color(0xFFF1F3ED), const Color(0xFFE6EBDD)],
-      [const Color(0xFFF5EFEB), const Color(0xFFECE3DD)],
-      [const Color(0xFFF0F2F4), const Color(0xFFE4E9ED)],
-      [const Color(0xFFF4F1E9), const Color(0xFFECE7D9)],
-    ];
-
-    return GestureDetector(
-      onTap: () => openProduct(context, p),
-      child: Container(
-        padding: const EdgeInsets.all(9),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE7E8E2), width: .8),
-          boxShadow: const [BoxShadow(color: Color(0x0C000000), blurRadius: 10, offset: Offset(0, 3))],
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(
-            height: 124,
-            width: double.infinity,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Stack(fit: StackFit.expand, children: [
-                Container(
-                  decoration: BoxDecoration(gradient: LinearGradient(
-                    begin: Alignment.topLeft, end: Alignment.bottomRight,
-                    colors: heroColors[index % heroColors.length],
-                  )),
-                  child: p.images.isNotEmpty && p.images.first.trim().isNotEmpty
-                    ? NetImage(url: p.images.first, fit: BoxFit.contain, fallback: const SizedBox.expand())
-                    : const SizedBox.expand(),
-                ),
-                Positioned(top: 6, right: 6, child: Material(
-                  color: Colors.white.withOpacity(.96), shape: const CircleBorder(),
-                  child: InkWell(customBorder: const CircleBorder(), onTap: () => s.toggleFavourite(p.id),
-                    child: Padding(padding: const EdgeInsets.all(7), child: Icon(
-                      fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                      size: 15, color: fav ? const Color(0xFFE35D58) : const Color(0xFF45483F),
-                    )),
-                  ),
-                )),
-                if (out) Container(color: const Color(0x66FFFFFF), alignment: Alignment.center,
-                  child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: ink))),
-              ]),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, height: 1.15, fontWeight: FontWeight.w800, color: ink)),
-          const SizedBox(height: 3),
-          Text(p.brand.isEmpty ? 'Zenvora Select' : p.brand, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: muted, letterSpacing: .15)),
-          const Spacer(),
-          Row(children: [
-            Expanded(child: Text('₹${p.price}', maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: ink))),
-            SizedBox(height: 29, child: FilledButton(
-              onPressed: () => openProduct(context, p),
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF20251D), foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 11), minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9))),
-              child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('View', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
-                SizedBox(width: 3), Icon(Icons.arrow_forward_rounded, size: 11),
-              ]),
-            )),
-          ]),
+  @override Widget build(BuildContext context) {
+    final s = StoreScope.of(context); final p = product;
+    final fav = s.favourites.contains(p.id); final out = p.stock <= 0;
+    final size = p.sizes.isEmpty ? '' : p.sizes[p.sizes.length ~/ 2];
+    final color = p.colors.isEmpty ? '' : p.colors.first;
+    return Container(padding: const EdgeInsets.all(9),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE9E9E6)),
+        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 9, offset: Offset(0, 3))]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(height: 126, width: double.infinity, child: Stack(fit: StackFit.expand, children: [
+          ClipRRect(borderRadius: BorderRadius.circular(10), child: p.images.isNotEmpty && p.images.first.trim().isNotEmpty
+            ? NetImage(url: p.images.first, fit: BoxFit.cover, fallback: const ColoredBox(color: Colors.white))
+            : const ColoredBox(color: Colors.white)),
+          Positioned(top: 5, right: 5, child: Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(.94), borderRadius: BorderRadius.circular(10)),
+            child: Text(p.category.isEmpty ? 'Other' : p.category, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 9, color: Color(0xFF666666), fontWeight: FontWeight.w600)))),
+          Positioned(top: 5, left: 5, child: Material(color: Colors.white.withOpacity(.94), shape: const CircleBorder(),
+            child: InkWell(customBorder: const CircleBorder(), onTap: () => s.toggleFavourite(p.id),
+              child: Padding(padding: const EdgeInsets.all(6), child: Icon(fav ? Icons.favorite : Icons.favorite_border,
+                size: 14, color: fav ? const Color(0xFFE35D58) : ink))))),
+          if (out) Container(color: const Color(0x66FFFFFF), alignment: Alignment.center,
+            child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: ink))),
+        ])),
+        const SizedBox(height: 7),
+        Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
+        const SizedBox(height: 3),
+        Row(children: const [Icon(Icons.star_rounded, size: 12, color: Color(0xFFF2B544)), SizedBox(width: 3),
+          Text('Customer reviews', style: TextStyle(fontSize: 9, color: Color(0xFF777777)))]),
+        const SizedBox(height: 4),
+        Text('₹${p.price}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
+        const Spacer(),
+        Row(children: [
+          Expanded(child: SizedBox(height: 29, child: OutlinedButton(
+            onPressed: out ? null : () async { await s.addToCart(p.id, size: size, color: color); if (context.mounted) toast(context, 'Added to cart'); },
+            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 3), side: const BorderSide(color: Color(0xFF252525)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+            child: const FittedBox(child: Text('Add to Cart', style: TextStyle(fontSize: 9, color: Color(0xFF222222), fontWeight: FontWeight.w700)))))),
+          const SizedBox(width: 6),
+          Expanded(child: SizedBox(height: 29, child: FilledButton(
+            onPressed: out ? null : () => openProduct(context, p),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF202020), foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 3), tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7))),
+            child: const FittedBox(child: Text('Buy Now', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700))))))
         ]),
-      ),
-    );
+      ]));
   }
 }
 
 SliverGridDelegate productGridDelegate() =>
-    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, childAspectRatio: .69);
+    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, childAspectRatio: .64);
 
 class FooterBlock extends StatelessWidget {
   const FooterBlock({super.key});

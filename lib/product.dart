@@ -77,9 +77,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: on ? ink : Colors.white,
+              color: on ? const Color(0xFFFF6B35) : Colors.white,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: on ? ink : line),
+              border: Border.all(color: on ? const Color(0xFFFF6B35) : line),
             ),
             child: Text(x, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: on ? Colors.white : ink)),
           ),
@@ -186,7 +186,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     final inStock = p.stock > 0;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
+        title: const BrandLogo(size: 30), centerTitle: true,
         actions: [
           IconButton(
             onPressed: () => s.toggleFavourite(p.id),
@@ -206,7 +208,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             Container(
               height: 380,
               clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: line)),
+              decoration: BoxDecoration(color: const Color(0xFFF9F9F9), borderRadius: BorderRadius.circular(20)),
               child: Stack(children: [
                 PageView.builder(
                   controller: pager,
@@ -396,6 +398,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           child: SafeArea(
             top: false,
             child: Row(children: [
+              Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: line)),
+                child: IconButton(padding: EdgeInsets.zero, onPressed: () => s.toggleFavourite(p.id),
+                  icon: Icon(fav ? Icons.favorite : Icons.favorite_border, color: fav ? const Color(0xFFFF6B35) : ink))),
+              const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(minimumSize: const Size(0, 42), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
