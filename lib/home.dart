@@ -21,7 +21,7 @@ class HomeScreen extends StatelessWidget {
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter, end: Alignment.bottomCenter,
-          colors: [Color(0xFFF0F1EC), Color(0xFFFAFAF8), Color(0xFFEDEFEA)],
+          colors: [Color(0xFFE5EBDD), Color(0xFFF8F8F5), Color(0xFFE9EDE4)],
         ),
       ),
       child: CustomScrollView(slivers: [
@@ -53,8 +53,7 @@ class HomeScreen extends StatelessWidget {
         SliverPersistentHeader(pinned: true, delegate: _StickySearchDelegate(
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
         )),
-        if (s.banners.isNotEmpty)
-          const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.fromLTRB(16, 12, 16, 0), child: BannerSlider())),
+        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.fromLTRB(16, 12, 16, 0), child: BannerSlider())),
         const SliverToBoxAdapter(child: SizedBox(height: 8)),
         const SliverToBoxAdapter(child: SectionHeading(title: 'Category', action: 'See all')),
         SliverToBoxAdapter(
@@ -112,7 +111,7 @@ class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
   @override double get maxExtent => 72;
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => Container(
-    color: const Color(0xFFF3F4EF),
+    decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFE9EDE4), Color(0xFFF5F6F1)])),
     padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
     child: Material(
       color: Colors.white, elevation: overlapsContent ? 4 : 1,
@@ -162,55 +161,58 @@ class _BannerSliderState extends State<BannerSlider> {
   Widget build(BuildContext context) {
     final list = StoreScope.of(context).banners;
     final ac = accentOf(context);
+    Widget blankBanner() => ClipRRect(borderRadius: BorderRadius.circular(22), child: AspectRatio(aspectRatio: 4 / 3,
+      child: Stack(fit: StackFit.expand, children: [
+        const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
+          colors: [Color(0xFFBDCCA7), Color(0xFFE5EBDD), Color(0xFFD5DFCA)]))),
+        Padding(padding: const EdgeInsets.fromLTRB(20, 18, 20, 18), child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center, children: [
+            Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(.48), borderRadius: BorderRadius.circular(20)),
+              child: const Text('ZEN VORA EDIT', style: TextStyle(color: Color(0xFF30392B), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.1))),
+            const SizedBox(height: 10),
+            const Text('Discover Your\nEveryday Style', style: TextStyle(color: Color(0xFF20271D), fontSize: 25, height: 1.08, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 13),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(color: const Color(0xFF20251D), borderRadius: BorderRadius.circular(22)),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('Shop Now', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)), SizedBox(width: 5), Icon(Icons.arrow_outward_rounded, size: 13, color: Colors.white)])),
+          ])),
+      ])));
+    if (list.isEmpty) return Column(children: [blankBanner(), const SizedBox(height: 8)]);
     return Column(children: [
-      AspectRatio(aspectRatio: 4 / 3,
-        child: ClipRRect(borderRadius: BorderRadius.circular(24),
-          child: PageView.builder(controller: controller, itemCount: list.length,
-            onPageChanged: (v) => setState(() => page = v),
-            itemBuilder: (c, i) {
-              final b = list[i];
-              return GestureDetector(
-                onTap: () { if (b.category.isNotEmpty) openCategory(context, b.category); },
-                child: Stack(fit: StackFit.expand, children: [
-                  Container(color: const Color(0xFFCBD6BE), child: NetImage(url: b.image, fallback: const SizedBox.expand())),
-                  const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(
-                    begin: Alignment.centerLeft, end: Alignment.centerRight,
-                    colors: [Color(0xCC172018), Color(0x66172018), Color(0x00172018)],
-                  ))),
-                  Padding(padding: const EdgeInsets.fromLTRB(20, 18, 145, 18),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(.18), borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white.withOpacity(.4))),
-                          child: const Text('LIMITED OFFER', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1))),
-                        const SizedBox(height: 10),
-                        const Text('Find Your\\nNew Favourite', style: TextStyle(color: Colors.white, fontSize: 22, height: 1.08, fontWeight: FontWeight.w900)),
-                        const SizedBox(height: 12),
-                        Container(padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-                          child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                            Text('Shop Now', style: TextStyle(color: Color(0xFF20251D), fontSize: 11, fontWeight: FontWeight.w800)),
-                            SizedBox(width: 5), Icon(Icons.arrow_outward_rounded, size: 13, color: Color(0xFF20251D)),
-                          ])),
-                      ],
-                    ),
-                  ),
-                ]),
-              );
-            },
-          ),
-        ),
+      AspectRatio(aspectRatio: 4 / 3, child: ClipRRect(borderRadius: BorderRadius.circular(22),
+        child: PageView.builder(controller: controller, itemCount: list.length,
+          onPageChanged: (v) => setState(() => page = v),
+          itemBuilder: (c, i) {
+            final b = list[i];
+            return GestureDetector(onTap: () { if (b.category.isNotEmpty) openCategory(context, b.category); },
+              child: Stack(fit: StackFit.expand, children: [
+                const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
+                  colors: [Color(0xFFBDCCA7), Color(0xFFE5EBDD), Color(0xFFD5DFCA)]))),
+                if (b.image.trim().isNotEmpty) NetImage(url: b.image, fit: BoxFit.cover, fallback: const SizedBox.expand()),
+                DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.centerLeft, end: Alignment.centerRight,
+                  colors: [const Color(0xAA172018), const Color(0x44172018), Colors.transparent]))),
+                Padding(padding: const EdgeInsets.fromLTRB(20, 18, 110, 18), child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(.2), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white.withOpacity(.45))),
+                      child: const Text('LIMITED OFFER', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1))),
+                    const SizedBox(height: 9),
+                    const Text('Find Your\nNew Favourite', style: TextStyle(color: Colors.white, fontSize: 23, height: 1.08, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 12),
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                      child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('Shop Now', style: TextStyle(color: Color(0xFF20251D), fontSize: 11, fontWeight: FontWeight.w800)), SizedBox(width: 5), Icon(Icons.arrow_outward_rounded, size: 13, color: Color(0xFF20251D))])),
+                  ])),
+              ]));
+          })),
       ),
-      const SizedBox(height: 9),
-      Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(list.length, (i) =>
-        AnimatedContainer(duration: const Duration(milliseconds: 180), margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: i == page ? 22 : 6, height: 6,
-          decoration: BoxDecoration(color: i == page ? ac : const Color(0xFFD1D5CB), borderRadius: BorderRadius.circular(9))))),
+      const SizedBox(height: 8),
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(list.length, (i) => AnimatedContainer(
+        duration: const Duration(milliseconds: 180), margin: const EdgeInsets.symmetric(horizontal: 3), width: i == page ? 22 : 6, height: 6,
+        decoration: BoxDecoration(color: i == page ? ac : const Color(0xFFD1D5CB), borderRadius: BorderRadius.circular(9))))),
     ]);
   }
 }
-
 class _CategoryTile extends StatelessWidget {
   final CategoryItem item;
   final int index;
@@ -364,7 +366,7 @@ class WishlistScreen extends StatelessWidget {
     return Scaffold(appBar: AppBar(title: const Text('Saved products')),
       body: list.isEmpty ? const EmptyState(title: 'Nothing saved yet', subtitle: 'Tap the heart on a product to save it.', icon: Icons.favorite_border)
         : GridView.builder(padding: const EdgeInsets.all(14), itemCount: list.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, childAspectRatio: .54),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, childAspectRatio: .56),
             itemBuilder: (c, i) => ProductCard(product: list[i], index: i)));
   }
 }

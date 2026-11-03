@@ -134,42 +134,45 @@ class ProductCard extends StatelessWidget {
       [const Color(0xFFE5DFCC), const Color(0xFFF1EBDD)],
     ];
     return GestureDetector(onTap: () => openProduct(context, p),
-      child: Container(padding: const EdgeInsets.all(9),
-        decoration: BoxDecoration(color: const Color(0xFFF8F8F6), borderRadius: BorderRadius.circular(25),
+      child: Container(padding: const EdgeInsets.all(7),
+        decoration: BoxDecoration(color: const Color(0xFFF8F8F6), borderRadius: BorderRadius.circular(19),
           border: Border.all(color: const Color(0xFFE7E8E2), width: .7),
-          boxShadow: const [BoxShadow(color: Color(0x10000000), blurRadius: 20, offset: Offset(0, 7))]),
+          boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 12, offset: Offset(0, 4))]),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(flex: 7, child: ClipRRect(borderRadius: BorderRadius.circular(19),
+          Expanded(flex: 3, child: ClipRRect(borderRadius: BorderRadius.circular(14),
             child: Stack(fit: StackFit.expand, children: [
-              Container(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
-                colors: heroColors[index % heroColors.length])),
-                child: Padding(padding: const EdgeInsets.all(8),
-                  child: NetImage(url: p.images.isEmpty ? '' : p.images.first, fit: BoxFit.contain,
-                    fallback: iconFallback(s.iconKeyFor(p.category), size: 48)))),
-              Positioned(top: 9, right: 9, child: Material(color: Colors.white.withOpacity(.94), shape: const CircleBorder(),
+              // Fixed 3:4 image stage. Product photos stay contained and never stretch.
+              AspectRatio(aspectRatio: 3 / 4,
+                child: Container(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
+                  colors: heroColors[index % heroColors.length])),
+                  child: p.images.isNotEmpty && p.images.first.trim().isNotEmpty
+                    ? Padding(padding: const EdgeInsets.all(7), child: NetImage(url: p.images.first, fit: BoxFit.contain, fallback: const SizedBox.expand()))
+                    : const SizedBox.expand())),
+              Positioned(top: 7, right: 7, child: Material(color: Colors.white.withOpacity(.94), shape: const CircleBorder(),
                 child: InkWell(customBorder: const CircleBorder(), onTap: () => s.toggleFavourite(p.id),
-                  child: Padding(padding: const EdgeInsets.all(8), child: Icon(fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    size: 17, color: fav ? const Color(0xFF30352D) : const Color(0xFF45483F)))))),
+                  child: Padding(padding: const EdgeInsets.all(7), child: Icon(fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    size: 15, color: fav ? const Color(0xFF30352D) : const Color(0xFF45483F)))))),
               if (out) Container(color: const Color(0x66FFFFFF), alignment: Alignment.center,
-                child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: ink))),
+                child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: ink))),
             ]))),
-          const SizedBox(height: 10),
+          const SizedBox(height: 7),
           Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, height: 1.2, fontWeight: FontWeight.w800, color: ink)),
-          const SizedBox(height: 3),
+            style: const TextStyle(fontSize: 12, height: 1.15, fontWeight: FontWeight.w800, color: ink)),
+          const SizedBox(height: 2),
           Text(p.brand.isEmpty ? 'Zenvora Select' : p.brand, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: muted, letterSpacing: .2)),
-          const SizedBox(height: 8),
+            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: muted, letterSpacing: .15)),
+          const SizedBox(height: 5),
           Row(children: [
             Expanded(child: Text('₹${p.price}', maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: ink))),
-            SizedBox(height: 31, child: FilledButton(onPressed: () => openProduct(context, p),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: ink))),
+            SizedBox(height: 27, child: FilledButton(onPressed: () => openProduct(context, p),
               style: FilledButton.styleFrom(backgroundColor: const Color(0xFF20251D), foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12), minimumSize: Size.zero,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11))),
+                padding: const EdgeInsets.symmetric(horizontal: 10), minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9))),
               child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('View', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
-                SizedBox(width: 3), Icon(Icons.arrow_outward_rounded, size: 12),
+                Text('View', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
+                SizedBox(width: 2), Icon(Icons.arrow_outward_rounded, size: 11),
               ]))),
           ]),
         ])));
@@ -177,7 +180,7 @@ class ProductCard extends StatelessWidget {
 }
 
 SliverGridDelegate productGridDelegate() =>
-    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 14, childAspectRatio: .53);
+    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 14, childAspectRatio: .56);
 
 class FooterBlock extends StatelessWidget {
   const FooterBlock({super.key});
