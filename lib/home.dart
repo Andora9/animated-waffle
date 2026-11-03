@@ -56,6 +56,7 @@ class HomeScreen extends StatelessWidget {
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
         )),
         const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.fromLTRB(16, 12, 16, 0), child: BannerSlider())),
+        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.fromLTRB(16, 10, 16, 2), child: MiniPromoSlider())),
         const SliverToBoxAdapter(child: SizedBox(height: 8)),
         const SliverToBoxAdapter(child: SectionHeading(title: 'Category', action: 'See all')),
         SliverToBoxAdapter(
@@ -66,7 +67,7 @@ class HomeScreen extends StatelessWidget {
                   itemCount: s.shownCategories.length, itemBuilder: (c, i) => _CategoryTile(item: s.shownCategories[i], index: i)),
           ),
         ),
-        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.fromLTRB(16, 12, 16, 4), child: SalePromoBanner())),
+        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.fromLTRB(0, 12, 0, 4), child: SalePromoBanner())),
         const SliverToBoxAdapter(child: SectionHeading(title: 'Curated Brands', action: 'Explore')),
         SliverToBoxAdapter(child: SizedBox(height: 82,
           child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -114,7 +115,8 @@ class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
   @override double get maxExtent => 64;
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => Container(
-    padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+    decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFD1DDBF), Color(0xFFE8ECE2)])),
+    padding: const EdgeInsets.fromLTRB(16, 7, 16, 9),
     child: Material(
       color: const Color(0xFFFFFFFF), elevation: overlapsContent ? 2 : 0,
       shadowColor: const Color(0x1A000000), borderRadius: BorderRadius.circular(25),
@@ -147,11 +149,11 @@ class _BannerSliderState extends State<BannerSlider> {
   @override
   void initState() {
     super.initState();
-    timer = Timer.periodic(const Duration(seconds: 4), (_) {
+    timer = Timer.periodic(const Duration(seconds: 6), (_) {
       if (!mounted || !controller.hasClients) return;
-      final n = StoreScope.read(context).banners.length;
+      final n = StoreScope.read(context).banners.length < 5 ? 5 : StoreScope.read(context).banners.length;
       if (n < 2) return;
-      controller.animateToPage((page + 1) % n, duration: const Duration(milliseconds: 450), curve: Curves.easeInOut);
+      controller.animateToPage((page + 1) % n, duration: const Duration(milliseconds: 650), curve: Curves.easeInOut);
     });
   }
   @override
@@ -177,13 +179,13 @@ class _BannerSliderState extends State<BannerSlider> {
               child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('Shop Now', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)), SizedBox(width: 5), Icon(Icons.arrow_outward_rounded, size: 13, color: Colors.white)])),
           ])),
       ])));
-    if (list.isEmpty) return Column(children: [blankBanner(), const SizedBox(height: 8)]);
+    if (list.isEmpty) return SizedBox(height: 160, child: ClipRRect(borderRadius: BorderRadius.circular(20), child: PageView.builder(controller: controller, itemCount: 5, onPageChanged: (v) => setState(() => page = v), itemBuilder: (_, __) => blankBanner())));
     return Column(children: [
       SizedBox(height: 160, child: ClipRRect(borderRadius: BorderRadius.circular(20),
-        child: PageView.builder(controller: controller, itemCount: list.length,
+        child: PageView.builder(controller: controller, itemCount: list.length < 5 ? 5 : list.length,
           onPageChanged: (v) => setState(() => page = v),
           itemBuilder: (c, i) {
-            final b = list[i];
+            final b = list[i % list.length];
             return GestureDetector(onTap: () { if (b.category.isNotEmpty) openCategory(context, b.category); },
               child: Stack(fit: StackFit.expand, children: [
                 const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
@@ -205,10 +207,7 @@ class _BannerSliderState extends State<BannerSlider> {
               ]));
           })),
       ),
-      const SizedBox(height: 8),
-      Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(list.length, (i) => AnimatedContainer(
-        duration: const Duration(milliseconds: 180), margin: const EdgeInsets.symmetric(horizontal: 3), width: i == page ? 22 : 6, height: 6,
-        decoration: BoxDecoration(color: i == page ? ac : const Color(0xFFD1D5CB), borderRadius: BorderRadius.circular(9))))),
+      const SizedBox(height: 10),
     ]);
   }
 }
@@ -252,25 +251,28 @@ class _BrandTile extends StatelessWidget {
   }
 }
 
-class SalePromoBanner extends StatelessWidget {
+class SalePromoBanner extends StatefulWidget {
   const SalePromoBanner({super.key});
-  @override Widget build(BuildContext context) => ClipRRect(borderRadius: BorderRadius.circular(20),
-    child: Container(height: 112, width: double.infinity,
-      decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
-        colors: [Color(0xFFE7EEDC), Color(0xFFCBE2B4)])),
-      child: Stack(children: [
-        Positioned(right: -8, bottom: -20, child: Icon(Icons.shopping_bag_rounded, size: 138, color: Color(0x332F422A))),
-        Padding(padding: const EdgeInsets.fromLTRB(18, 13, 110, 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center, children: [
-            Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-              decoration: BoxDecoration(color: const Color(0xFF20251D), borderRadius: BorderRadius.circular(15)),
-              child: const Text('LIMITED OFFER', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800))),
-            const SizedBox(height: 7),
-            const Text('First Purchase Enjoy\na Special Offer', style: TextStyle(color: Color(0xFF20251D), fontSize: 16, height: 1.12, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 7),
-            const Text('Shop Now  ↗', style: TextStyle(color: Color(0xFF20251D), fontSize: 10, fontWeight: FontWeight.w800)),
-          ])),
-      ])));
+  @override State<SalePromoBanner> createState() => _SalePromoBannerState();
+}
+class _SalePromoBannerState extends State<SalePromoBanner> {
+  late DateTime endAt;
+  Timer? timer;
+  @override void initState() { super.initState(); endAt = DateTime.now().add(const Duration(hours: 2, minutes: 15, seconds: 47)); timer = Timer.periodic(const Duration(seconds: 1), (_) { if (mounted) setState(() {}); }); }
+  @override void dispose() { timer?.cancel(); super.dispose(); }
+  String get countdown { final d = endAt.difference(DateTime.now()); final sec = d.isNegative ? 0 : d.inSeconds; final h = (sec ~/ 3600).toString().padLeft(2, '0'); final m = ((sec % 3600) ~/ 60).toString().padLeft(2, '0'); final s = (sec % 60).toString().padLeft(2, '0'); return '$h : $m : $s'; }
+  @override Widget build(BuildContext context) => Container(margin: const EdgeInsets.symmetric(horizontal: 16), padding: const EdgeInsets.all(15), decoration: BoxDecoration(gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFB8C99F), Color(0xFFD7E2C9), Color(0xFFC4D4B2)]), borderRadius: BorderRadius.circular(20), boxShadow: const [BoxShadow(color: Color(0x18000000), blurRadius: 12, offset: Offset(0, 4))]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Row(children: [const Icon(Icons.local_fire_department_rounded, size: 18, color: Color(0xFF263321)), const SizedBox(width: 6), const Expanded(child: Text('Summer Sale is Live!', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF263321)))), TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())), style: TextButton.styleFrom(backgroundColor: const Color(0xFF20271D), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap), child: const Text('Shop the Sale', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)))]),
+    const SizedBox(height: 9), Row(crossAxisAlignment: CrossAxisAlignment.center, children: [const Expanded(child: Text('Flat 40% OFF', style: TextStyle(fontSize: 25, height: 1, fontWeight: FontWeight.w900, color: Color(0xFF20271D)))), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), decoration: BoxDecoration(color: const Color(0xFF20271D), borderRadius: BorderRadius.circular(10)), child: Column(children: [const Text('ENDS IN', style: TextStyle(fontSize: 8, color: Colors.white70, fontWeight: FontWeight.w800, letterSpacing: 1)), Text(countdown, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900))]))]),
+    const SizedBox(height: 9), const Text('Limited time only. Shop before it’s gone!', style: TextStyle(fontSize: 10, color: Color(0xFF34432D), fontWeight: FontWeight.w600)),
+  ]));
+}
+
+class MiniPromoSlider extends StatefulWidget { const MiniPromoSlider({super.key}); @override State<MiniPromoSlider> createState() => _MiniPromoSliderState(); }
+class _MiniPromoSliderState extends State<MiniPromoSlider> { final PageController _controller = PageController(viewportFraction: .88); Timer? _timer; int _page = 0; final List<List<String>> _items = const [['MEMBER EXCLUSIVE', 'Extra 10% off your first order', 'card_giftcard_rounded'], ['STYLE UPDATE', 'Fresh picks for your everyday look', 'auto_awesome_rounded'], ['WEEKEND EDIT', 'Discover something you will love', 'shopping_bag_rounded']];
+@override void initState() { super.initState(); _timer = Timer.periodic(const Duration(seconds: 6), (_) { if (mounted && _controller.hasClients) _controller.animateToPage((_page + 1) % _items.length, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut); }); }
+@override void dispose() { _timer?.cancel(); _controller.dispose(); super.dispose(); }
+@override Widget build(BuildContext context) => SizedBox(height: 78, child: PageView.builder(controller: _controller, itemCount: _items.length, onPageChanged: (v) => setState(() => _page = v), itemBuilder: (c, i) { final x = _items[i]; return Container(margin: const EdgeInsets.only(right: 9), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF35432D), Color(0xFF657653)]), borderRadius: BorderRadius.circular(16)), child: Row(children: [Icon(Icons.auto_awesome_rounded, color: Colors.white.withOpacity(.9), size: 25), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(x[0], style: const TextStyle(color: Color(0xFFDCE8CF), fontSize: 8, letterSpacing: 1.1, fontWeight: FontWeight.w900)), const SizedBox(height: 4), Text(x[1], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800))]),), const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18)])); }));
 }
 
 class CategoryProductsScreen extends StatelessWidget {
@@ -312,17 +314,17 @@ class _SearchScreenState extends State<SearchScreen> {
   @override void dispose() { controller.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) {
-    final s = StoreScope.of(context); final list = s.listProducts(q: controller.text, sortBy: 'Featured');
+    final s = StoreScope.of(context); final matches = s.listProducts(q: controller.text, sortBy: 'Featured'); final list = matches.isEmpty && controller.text.trim().isNotEmpty ? s.listProducts(sortBy: 'Top Rated').take(8).toList() : matches;
     return Scaffold(appBar: AppBar(title: const Text('Search products')),
       body: Column(children: [
         Padding(padding: const EdgeInsets.all(16), child: TextField(controller: controller, autofocus: true, onChanged: (v) => setState(() {}),
           decoration: InputDecoration(hintText: 'Search products, brands, categories', prefixIcon: const Icon(Icons.search),
             suffixIcon: IconButton(onPressed: () { controller.clear(); setState(() {}); }, icon: const Icon(Icons.close))))),
-        Expanded(child: list.isEmpty ? const EmptyState(title: 'No matches', subtitle: 'Try a different search.', icon: Icons.search_off_rounded)
-          : ListView.separated(padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: list.length, separatorBuilder: (_, __) => const Divider(height: 1),
+        Expanded(child: list.isEmpty ? const EmptyState(title: 'No products yet', subtitle: 'Products will appear here.', icon: Icons.search_off_rounded)
+          : Column(children: [if (matches.isEmpty && controller.text.trim().isNotEmpty) const Padding(padding: EdgeInsets.fromLTRB(16, 0, 16, 8), child: Align(alignment: Alignment.centerLeft, child: Text('No exact match — you may like these', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: muted)))), Expanded(child: ListView.separated(padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: list.length, separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (c, i) => ListTile(contentPadding: const EdgeInsets.symmetric(vertical: 6), leading: ProductThumb(product: list[i]),
                 title: Text(list[i].name, style: const TextStyle(fontWeight: FontWeight.w800)),
-                subtitle: Text('${list[i].brand} · ₹${list[i].price}'), trailing: const Icon(Icons.chevron_right), onTap: () => openProduct(context, list[i])))),
+                subtitle: Text('${list[i].brand} · ₹${list[i].price}'), trailing: const Icon(Icons.chevron_right), onTap: () => openProduct(context, list[i]))))),
       ]));
   }
 }

@@ -127,10 +127,10 @@ class ProductCard extends StatelessWidget {
   const ProductCard({super.key, required this.product, this.index = 0});
   @override Widget build(BuildContext context) {
     final s = StoreScope.of(context); final p = product;
-    final fav = s.favourites.contains(p.id); final out = p.stock <= 0;
+    final fav = s.favourites.contains(p.id); final out = p.stock <= 0; final rating = s.ratingOf(p.id); final reviewCount = s.reviewsOf(p.id).length;
     final size = p.sizes.isEmpty ? '' : p.sizes[p.sizes.length ~/ 2];
     final color = p.colors.isEmpty ? '' : p.colors.first;
-    return Container(padding: const EdgeInsets.all(9),
+    return GestureDetector(onTap: () => openProduct(context, p), child: Container(padding: const EdgeInsets.all(9),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE9E9E6)),
         boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 9, offset: Offset(0, 3))]),
@@ -139,14 +139,8 @@ class ProductCard extends StatelessWidget {
           ClipRRect(borderRadius: BorderRadius.circular(10), child: p.images.isNotEmpty && p.images.first.trim().isNotEmpty
             ? NetImage(url: p.images.first, fit: BoxFit.cover, fallback: const ColoredBox(color: Colors.white))
             : const ColoredBox(color: Colors.white)),
-          Positioned(top: 5, right: 5, child: Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(.94), borderRadius: BorderRadius.circular(10)),
-            child: Text(p.category.isEmpty ? 'Other' : p.category, maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 9, color: Color(0xFF666666), fontWeight: FontWeight.w600)))),
-          Positioned(top: 5, left: 5, child: Material(color: Colors.white.withOpacity(.94), shape: const CircleBorder(),
-            child: InkWell(customBorder: const CircleBorder(), onTap: () => s.toggleFavourite(p.id),
-              child: Padding(padding: const EdgeInsets.all(6), child: Icon(fav ? Icons.favorite : Icons.favorite_border,
-                size: 14, color: fav ? const Color(0xFFE35D58) : ink))))),
+          if (p.discount > 0) Positioned(top: 5, left: 5, child: Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5), decoration: BoxDecoration(color: const Color(0xFF35432D), borderRadius: BorderRadius.circular(8)), child: Text('${p.discount}% OFF', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900)))),
+          Positioned(top: 5, right: 5, child: Material(color: Colors.white.withOpacity(.96), shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: () => s.toggleFavourite(p.id), child: Padding(padding: const EdgeInsets.all(6), child: Icon(fav ? Icons.favorite : Icons.favorite_border, size: 15, color: fav ? const Color(0xFFE35D58) : ink))))),
           if (out) Container(color: const Color(0x66FFFFFF), alignment: Alignment.center,
             child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: ink))),
         ])),
@@ -154,8 +148,7 @@ class ProductCard extends StatelessWidget {
         Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
         const SizedBox(height: 3),
-        Row(children: const [Icon(Icons.star_rounded, size: 12, color: Color(0xFFF2B544)), SizedBox(width: 3),
-          Text('Customer reviews', style: TextStyle(fontSize: 9, color: Color(0xFF777777)))]),
+        Row(children: [const Icon(Icons.star_rounded, size: 12, color: Color(0xFFF2B544)), const SizedBox(width: 3), Text(rating > 0 ? rating.toStringAsFixed(1) : 'New', style: const TextStyle(fontSize: 9, color: Color(0xFF777777), fontWeight: FontWeight.w700)), const SizedBox(width: 4), Text('($reviewCount reviews)', style: const TextStyle(fontSize: 9, color: Color(0xFF888888)))]),
         const SizedBox(height: 4),
         Text('₹${p.price}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
         const Spacer(),
@@ -173,7 +166,7 @@ class ProductCard extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7))),
             child: const FittedBox(child: Text('Buy Now', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700))))))
         ]),
-      ]));
+      ])));
   }
 }
 
