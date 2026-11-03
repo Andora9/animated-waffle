@@ -1,0 +1,240 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'models.dart';
+import 'store.dart';
+import 'home.dart';
+import 'cart.dart';
+import 'account.dart';
+import 'widgets.dart';
+import 'notifications.dart';
+import 'auth.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+    systemNavigationBarColor: pageBg,
+    systemNavigationBarIconBrightness: Brightness.dark,
+  ));
+  final store = StoreController();
+  await store.load();
+  runApp(ZenvoraApp(store: store));
+  // Heavy work runs AFTER first frame so the app opens instantly.
+  unawaited(PushNotifications.initialize());
+  unawaited(store.bootCloud());
+}
+
+class ZenvoraApp extends StatelessWidget {
+  final StoreController store;
+  const ZenvoraApp({super.key, required this.store});
+
+  ThemeData _theme(Color ac, bool dark) => ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: pageBg,
+        colorScheme: ColorScheme.dark(primary: const Color(0xFFADB99D), onPrimary: const Color(0xFF10120E), secondary: const Color(0xFF89947D), surface: const Color(0xFF171A16), onSurface: ink, error: danger),
+        appBarTheme: AppBarTheme(
+          systemOverlayStyle: dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+          backgroundColor: pageBg,
+          foregroundColor: ink,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: false,
+          titleTextStyle: const TextStyle(color: ink, fontSize: 20, fontWeight: FontWeight.w900),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF171A16),
+          hintStyle: const TextStyle(color: muted, fontSize: 13),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: line)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: line)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: ac, width: 1.4)),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: ac,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: line,
+            disabledForegroundColor: muted,
+            minimumSize: const Size(0, 42),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, letterSpacing: .2),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: ac,
+            side: const BorderSide(color: Color(0xFF454A40)),
+            minimumSize: const Size(0, 40),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+        ),
+        dividerColor: line,
+      );
+
+  @override
+  Widget build(BuildContext context) => StoreScope(
+        store: store,
+        child: ListenableBuilder(
+          listenable: store,
+          builder: (context, _) => MaterialApp(
+            title: store.settings.appName,
+            debugShowCheckedModeBanner: false,
+            theme: _theme(const Color(0xFFADB99D), store.dark),
+            builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+              value: SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness: store.dark ? Brightness.light : Brightness.dark,
+                systemNavigationBarColor: store.dark ? Colors.black : Colors.white,
+                systemNavigationBarIconBrightness: store.dark ? Brightness.light : Brightness.dark,
+              ),
+              child: child!,
+            ),
+            home: const SplashScreen(),
+          ),
+        ),
+      );
+}
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Timer(const Duration(milliseconds: 160), () {
+      if (!mounted) return;
+      final store = StoreScope.read(context);
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+        builder: (_) => store.needsLogin ? const StartupLoginGate() : const MainShell(),
+      ));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = StoreScope.of(context);
+    return Scaffold(
+      backgroundColor: pageBg,
+      body: Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const BrandLogo(size: 72),
+          const SizedBox(height: 18),
+          Text(s.settings.appName.toUpperCase(), style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900, letterSpacing: 2.4)),
+          const SizedBox(height: 7),
+          Text(s.settings.tagline, style: const TextStyle(color: muted, fontSize: 12, letterSpacing: .4)),
+        ]),
+      ),
+    );
+  }
+}
+
+class StartupLoginGate extends StatefulWidget {
+  const StartupLoginGate({super.key});
+  @override
+  State<StartupLoginGate> createState() => _StartupLoginGateState();
+}
+
+class _StartupLoginGateState extends State<StartupLoginGate> {
+  bool _opening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _requireLogin());
+  }
+
+  Future<void> _requireLogin() async {
+    if (_opening || !mounted) return;
+    _opening = true;
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const AuthScreen()),
+    );
+    _opening = false;
+    if (!mounted) return;
+    if (result == true) {
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const MainShell()));
+    } else {
+      // Login is required to enter the shopping experience; do not silently bypass it.
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      if (mounted) _requireLogin();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(
+        backgroundColor: pageBg,
+        body: Center(child: CircularProgressIndicator()),
+      );
+}
+
+class MainShell extends StatefulWidget {
+  const MainShell({super.key});
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  int index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // auto-detect delivery PIN code on first launch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) StoreScope.read(context).autoPinOnce();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = StoreScope.of(context);
+    const pages = [HomeScreen(), WishlistScreen(), CartScreen(), AccountScreen()];
+    const radius = BorderRadius.vertical(top: Radius.circular(28));
+
+    return Scaffold(
+      body: SafeArea(bottom: false, child: IndexedStack(index: index, children: pages)),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: ink,
+          borderRadius: radius,
+          boxShadow: [BoxShadow(color: Color(0x1A000000), blurRadius: 20, offset: Offset(0, -4))],
+        ),
+        child: ClipRRect(
+          borderRadius: radius,
+          child: NavigationBar(
+            backgroundColor: pageBg,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            height: 66,
+            indicatorColor: const Color(0xFF30372B),
+            selectedIndex: index,
+            onDestinationSelected: (v) => setState(() => index = v),
+            destinations: [
+              const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
+              const NavigationDestination(icon: Icon(Icons.favorite_border), selectedIcon: Icon(Icons.favorite), label: 'Saved'),
+              NavigationDestination(
+                icon: Badge(isLabelVisible: s.itemCount > 0, label: Text('${s.itemCount}'), child: const Icon(Icons.shopping_cart_outlined)),
+                selectedIcon: const Icon(Icons.shopping_cart),
+                label: 'Cart',
+              ),
+              const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Account'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

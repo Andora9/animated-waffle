@@ -1,0 +1,63 @@
+name: Build Zenvora APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Get repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Setup Java
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Setup Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # Generate missing Gradle wrapper files, then restore Zenvora native branding.
+      - name: Generate Android wrapper and restore branding
+        run: |
+          flutter create . --platforms=android --project-name zenvora --org com.zenvora
+          python3 tool/restore_android_branding.py
+          rm -f test/widget_test.dart
+          rmdir test 2>/dev/null || true
+
+      # Install dependencies
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      # Format Dart code
+      - name: Format Dart code
+        run: dart format lib
+
+      # Analyze Dart code
+      - name: Analyze Flutter project
+        continue-on-error: true
+        run: flutter analyze
+
+      # Build APK
+      - name: Build Release APK
+        run: flutter build apk --release --no-shrink
+
+      # Upload APK
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zenvora-Release-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
