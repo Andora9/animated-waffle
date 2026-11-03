@@ -324,7 +324,7 @@ class _SearchScreenState extends State<SearchScreen> {
           : Column(children: [if (matches.isEmpty && controller.text.trim().isNotEmpty) const Padding(padding: EdgeInsets.fromLTRB(16, 0, 16, 8), child: Align(alignment: Alignment.centerLeft, child: Text('No exact match — you may like these', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: muted)))), Expanded(child: ListView.separated(padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: list.length, separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (c, i) => ListTile(contentPadding: const EdgeInsets.symmetric(vertical: 6), leading: ProductThumb(product: list[i]),
                 title: Text(list[i].name, style: const TextStyle(fontWeight: FontWeight.w800)),
-                subtitle: Text('${list[i].brand} · ₹${list[i].price}'), trailing: const Icon(Icons.chevron_right), onTap: () => openProduct(context, list[i]))))),
+                subtitle: Text('${list[i].brand} · ₹${list[i].price}'), trailing: const Icon(Icons.chevron_right), onTap: () => openProduct(context, list[i])); } }
       ]));
   }
 }
