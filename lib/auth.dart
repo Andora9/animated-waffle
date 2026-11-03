@@ -138,7 +138,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget build(BuildContext context) {
     final appName = StoreScope.of(context).settings.appName;
     return Scaffold(
-      backgroundColor: const Color(0xFF35432D),
+      backgroundColor: const Color(0xFF34432D),
       body: SafeArea(
         bottom: false,
         child: Column(children: [
@@ -151,9 +151,19 @@ class _AuthScreenState extends State<AuthScreen> {
                 IconButton(onPressed: () => Navigator.pop(context, false), icon: const Icon(Icons.close_rounded, color: Colors.white70)),
             ]),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 0, 28, 26),
-            child: Container(width: double.infinity, padding: const EdgeInsets.only(bottom: 2), decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF34432D), Color(0xFF596B49), Color(0xFF3C4B34)])), child: Column(children: [
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 26),
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF34432D), Color(0xFF536747), Color(0xFF3C4B34)],
+              ),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+            ),
+            child: Column(children: [
               Container(
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)),
@@ -163,7 +173,7 @@ class _AuthScreenState extends State<AuthScreen> {
               Text(appName.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 3)),
               const SizedBox(height: 6),
               const Text('Premium shopping, delivered fast', style: TextStyle(color: Color(0xFFD4DDCB), fontSize: 12, letterSpacing: .4)),
-            ])),
+            ]),
           ),
           // ---------- white sheet
           Expanded(

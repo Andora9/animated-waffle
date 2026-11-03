@@ -33,7 +33,7 @@ class HomeScreen extends StatelessWidget {
             child: GestureDetector(
               onTap: () => showPinSheet(context),
               child: Row(children: [
-                Container(width: 34, height: 34, decoration: BoxDecoration(color: const Color(0xFFE8E8E3), borderRadius: BorderRadius.circular(11)),
+                Container(width: 34, height: 34, decoration: BoxDecoration(color: const Color(0xFFD5DFCA), borderRadius: BorderRadius.circular(11)),
                   child: const Icon(Icons.location_on_outlined, size: 19, color: ink)),
                 const SizedBox(width: 10),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -56,7 +56,6 @@ class HomeScreen extends StatelessWidget {
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
         )),
         const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.fromLTRB(16, 12, 16, 0), child: BannerSlider())),
-        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.fromLTRB(16, 10, 16, 2), child: MiniPromoSlider())),
         const SliverToBoxAdapter(child: SizedBox(height: 8)),
         const SliverToBoxAdapter(child: SectionHeading(title: 'Category', action: 'See all')),
         SliverToBoxAdapter(
@@ -115,7 +114,7 @@ class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
   @override double get maxExtent => 64;
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => Container(
-    decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFD1DDBF), Color(0xFFE8ECE2)])),
+    decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFE5EBDD), Color(0xFFF8F8F5)])),
     padding: const EdgeInsets.fromLTRB(16, 7, 16, 9),
     child: Material(
       color: const Color(0xFFFFFFFF), elevation: overlapsContent ? 2 : 0,
@@ -253,26 +252,105 @@ class _BrandTile extends StatelessWidget {
 
 class SalePromoBanner extends StatefulWidget {
   const SalePromoBanner({super.key});
-  @override State<SalePromoBanner> createState() => _SalePromoBannerState();
+  @override
+  State<SalePromoBanner> createState() => _SalePromoBannerState();
 }
+
 class _SalePromoBannerState extends State<SalePromoBanner> {
   late DateTime endAt;
   Timer? timer;
-  @override void initState() { super.initState(); endAt = DateTime.now().add(const Duration(hours: 2, minutes: 15, seconds: 47)); timer = Timer.periodic(const Duration(seconds: 1), (_) { if (mounted) setState(() {}); }); }
-  @override void dispose() { timer?.cancel(); super.dispose(); }
-  String get countdown { final d = endAt.difference(DateTime.now()); final sec = d.isNegative ? 0 : d.inSeconds; final h = (sec ~/ 3600).toString().padLeft(2, '0'); final m = ((sec % 3600) ~/ 60).toString().padLeft(2, '0'); final s = (sec % 60).toString().padLeft(2, '0'); return '$h : $m : $s'; }
-  @override Widget build(BuildContext context) => Container(margin: const EdgeInsets.symmetric(horizontal: 16), padding: const EdgeInsets.all(15), decoration: BoxDecoration(gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFB8C99F), Color(0xFFD7E2C9), Color(0xFFC4D4B2)]), borderRadius: BorderRadius.circular(20), boxShadow: const [BoxShadow(color: Color(0x18000000), blurRadius: 12, offset: Offset(0, 4))]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Row(children: [const Icon(Icons.local_fire_department_rounded, size: 18, color: Color(0xFF263321)), const SizedBox(width: 6), const Expanded(child: Text('Summer Sale is Live!', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF263321)))), TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())), style: TextButton.styleFrom(backgroundColor: const Color(0xFF20271D), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap), child: const Text('Shop the Sale', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)))]),
-    const SizedBox(height: 9), Row(crossAxisAlignment: CrossAxisAlignment.center, children: [const Expanded(child: Text('Flat 40% OFF', style: TextStyle(fontSize: 25, height: 1, fontWeight: FontWeight.w900, color: Color(0xFF20271D)))), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), decoration: BoxDecoration(color: const Color(0xFF20271D), borderRadius: BorderRadius.circular(10)), child: Column(children: [const Text('ENDS IN', style: TextStyle(fontSize: 8, color: Colors.white70, fontWeight: FontWeight.w800, letterSpacing: 1)), Text(countdown, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900))]))]),
-    const SizedBox(height: 9), const Text('Limited time only. Shop before it’s gone!', style: TextStyle(fontSize: 10, color: Color(0xFF34432D), fontWeight: FontWeight.w600)),
-  ]));
-}
 
-class MiniPromoSlider extends StatefulWidget { const MiniPromoSlider({super.key}); @override State<MiniPromoSlider> createState() => _MiniPromoSliderState(); }
-class _MiniPromoSliderState extends State<MiniPromoSlider> { final PageController _controller = PageController(viewportFraction: .88); Timer? _timer; int _page = 0; final List<List<String>> _items = const [['MEMBER EXCLUSIVE', 'Extra 10% off your first order', 'card_giftcard_rounded'], ['STYLE UPDATE', 'Fresh picks for your everyday look', 'auto_awesome_rounded'], ['WEEKEND EDIT', 'Discover something you will love', 'shopping_bag_rounded']];
-@override void initState() { super.initState(); _timer = Timer.periodic(const Duration(seconds: 6), (_) { if (mounted && _controller.hasClients) _controller.animateToPage((_page + 1) % _items.length, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut); }); }
-@override void dispose() { _timer?.cancel(); _controller.dispose(); super.dispose(); }
-@override Widget build(BuildContext context) => SizedBox(height: 78, child: PageView.builder(controller: _controller, itemCount: _items.length, onPageChanged: (v) => setState(() => _page = v), itemBuilder: (c, i) { final x = _items[i]; return Container(margin: const EdgeInsets.only(right: 9), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF35432D), Color(0xFF657653)]), borderRadius: BorderRadius.circular(16)), child: Row(children: [Icon(Icons.auto_awesome_rounded, color: Colors.white.withOpacity(.9), size: 25), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(x[0], style: const TextStyle(color: Color(0xFFDCE8CF), fontSize: 8, letterSpacing: 1.1, fontWeight: FontWeight.w900)), const SizedBox(height: 4), Text(x[1], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800))]),), const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18)])); }));
+  @override
+  void initState() {
+    super.initState();
+    endAt = DateTime.now().add(const Duration(hours: 2, minutes: 15, seconds: 47));
+    timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
+
+  String get countdown {
+    final remaining = endAt.difference(DateTime.now());
+    final seconds = remaining.isNegative ? 0 : remaining.inSeconds;
+    final h = (seconds ~/ 3600).toString().padLeft(2, '0');
+    final m = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
+    final sec = (seconds % 60).toString().padLeft(2, '0');
+    return '$h : $m : $sec';
+  }
+
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+        padding: const EdgeInsets.fromLTRB(16, 15, 16, 14),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFB7C99F), Color(0xFFDCE6D0), Color(0xFFC6D6B7)],
+          ),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFF9EAF8B).withOpacity(.45)),
+          boxShadow: const [
+            BoxShadow(color: Color(0x1A263321), blurRadius: 16, offset: Offset(0, 7)),
+          ],
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              width: 32, height: 32,
+              decoration: BoxDecoration(color: Colors.white.withOpacity(.55), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.local_fire_department_rounded, color: Color(0xFF263321), size: 19),
+            ),
+            const SizedBox(width: 9),
+            const Expanded(child: Text('Summer Sale is Live!', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF263321)))),
+            FilledButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF263321), foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+                minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+              ),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Text('Shop the Sale', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
+                SizedBox(width: 5), Icon(Icons.arrow_forward_rounded, size: 13),
+              ]),
+            ),
+          ]),
+          const SizedBox(height: 15),
+          Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('FLAT', style: TextStyle(fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.w900, color: Color(0xFF526348))),
+              SizedBox(height: 2),
+              Text('40% OFF', style: TextStyle(fontSize: 30, height: 1, letterSpacing: -.8, fontWeight: FontWeight.w900, color: Color(0xFF20271D))),
+            ])),
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+              decoration: BoxDecoration(color: const Color(0xFF263321), borderRadius: BorderRadius.circular(13), boxShadow: const [
+                BoxShadow(color: Color(0x22000000), blurRadius: 8, offset: Offset(0, 3)),
+              ]),
+              child: Column(children: [
+                const Text('ENDS IN', style: TextStyle(color: Color(0xFFCFDAC5), fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                const SizedBox(height: 4),
+                Text(countdown, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900)),
+              ]),
+            ),
+          ]),
+          const SizedBox(height: 13),
+          Row(children: [
+            Container(width: 5, height: 5, decoration: const BoxDecoration(color: Color(0xFF526348), shape: BoxShape.circle)),
+            const SizedBox(width: 7),
+            const Expanded(child: Text('Limited time only. Shop before it’s gone!', style: TextStyle(fontSize: 10, color: Color(0xFF34432D), fontWeight: FontWeight.w700))),
+            const Icon(Icons.bolt_rounded, size: 16, color: Color(0xFF526348)),
+          ]),
+        ]),
+      );
 }
 
 class CategoryProductsScreen extends StatelessWidget {

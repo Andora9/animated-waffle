@@ -55,6 +55,26 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         ]),
       );
 
+  Widget _accordion(String title, Widget child, {bool initiallyExpanded = false}) => Container(
+        margin: const EdgeInsets.only(top: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: line),
+        ),
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            initiallyExpanded: initiallyExpanded,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+            childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 15),
+            title: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: ink)),
+            trailing: const Icon(Icons.add_rounded, size: 19),
+            children: [child],
+          ),
+        ),
+      );
+
   Widget _label(String t, String chosen) => Padding(
         padding: const EdgeInsets.only(top: 20, bottom: 10),
         child: Row(children: [
@@ -216,7 +236,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   onPageChanged: (v) => setState(() => page = v),
                   itemBuilder: (c, i) => NetImage(
                     url: p.images.isEmpty ? '' : p.images[i],
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                     fallback: iconFallback(s.iconKeyFor(p.category), size: 90),
                   ),
                 ),
@@ -232,13 +252,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   ),
                 if (imgCount > 1)
                   Positioned(
-                    right: 12,
-                    bottom: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: const Color(0xCC000000), borderRadius: BorderRadius.circular(20)),
-                      child: Text('${page + 1} / $imgCount', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
-                    ),
+                    left: 0, right: 0, bottom: 13,
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(imgCount, (i) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: page == i ? 18 : 6, height: 6,
+                      decoration: BoxDecoration(color: page == i ? const Color(0xFF263321) : const Color(0xFFB8BDB4), borderRadius: BorderRadius.circular(8)),
+                    ))),
                   ),
               ]),
             ),
@@ -309,8 +329,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             if (p.colors.isNotEmpty) ...[_label('Colour', color), _chips(p.colors, color, (v) => setState(() => color = v))],
 
             // ---- delivery + membership
-            _section(
-              'Delivery',
+            _accordion(
+              'Free Delivery and Returns',
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
                   const Icon(Icons.location_on_outlined, size: 19),
@@ -360,7 +380,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             ),
 
             // ---- details
-            _section('Product details', Text(p.description.isEmpty ? 'No details added yet.' : p.description, style: const TextStyle(color: Color(0xFF4B5563), height: 1.6, fontSize: 13))),
+            _accordion('Description', Text(p.description.isEmpty ? 'No details added yet.' : p.description, style: const TextStyle(color: Color(0xFF4B5563), height: 1.6, fontSize: 13))),
 
             _section(
               'Specifications',
@@ -483,14 +503,24 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             margin: const EdgeInsets.only(top: 10),
             padding: const EdgeInsets.only(top: 12),
             decoration: BoxDecoration(border: Border(top: BorderSide(color: line))),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child: Container(
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: line)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                StarRow(rating: r.rating.toDouble(), size: 14),
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: const Color(0xFFE5EBDD),
+                  child: Text(r.name.isEmpty ? '?' : r.name.substring(0, 1).toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF34432D))),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: Text(r.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13))),
-                Text(shortDate(r.date).split('  ').first, style: const TextStyle(color: muted, fontSize: 11)),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(r.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                  Text(shortDate(r.date).split('  ').first, style: const TextStyle(color: muted, fontSize: 10)),
+                ])),
+                StarRow(rating: r.rating.toDouble(), size: 13),
               ]),
-              if (r.text.isNotEmpty) ...[const SizedBox(height: 6), Text(r.text, style: const TextStyle(fontSize: 13, height: 1.5))],
+              if (r.text.isNotEmpty) ...[const SizedBox(height: 9), Text(r.text, style: const TextStyle(fontSize: 13, height: 1.5, color: Color(0xFF4B5563)))],
               const SizedBox(height: 4),
               const Row(children: [
                 Icon(Icons.verified_outlined, size: 13, color: success),
@@ -498,6 +528,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 Text('Verified purchase', style: TextStyle(color: success, fontSize: 11, fontWeight: FontWeight.w700)),
               ]),
             ]),
+            ),
           )),
     ]);
   }
