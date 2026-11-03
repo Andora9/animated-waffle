@@ -34,7 +34,7 @@ class ZenvoraApp extends StatelessWidget {
   ThemeData _theme(Color ac, bool dark) => ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: pageBg,
-        colorScheme: ColorScheme.dark(primary: const Color(0xFFADB99D), onPrimary: const Color(0xFF10120E), secondary: const Color(0xFF89947D), surface: const Color(0xFF171A16), onSurface: ink, error: danger),
+        colorScheme: ColorScheme.light(primary: ac, onPrimary: Colors.white, secondary: ac, surface: Colors.white, onSurface: ink, error: danger),
         appBarTheme: AppBarTheme(
           systemOverlayStyle: dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
           backgroundColor: pageBg,
@@ -46,7 +46,7 @@ class ZenvoraApp extends StatelessWidget {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF171A16),
+          fillColor: Colors.white,
           hintStyle: const TextStyle(color: muted, fontSize: 13),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: line)),
@@ -69,7 +69,7 @@ class ZenvoraApp extends StatelessWidget {
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: ac,
-            side: const BorderSide(color: Color(0xFF454A40)),
+            side: const BorderSide(color: Color(0xFFD4D4D8)),
             minimumSize: const Size(0, 40),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -88,15 +88,15 @@ class ZenvoraApp extends StatelessWidget {
           builder: (context, _) => MaterialApp(
             title: store.settings.appName,
             debugShowCheckedModeBanner: false,
-            theme: _theme(const Color(0xFFADB99D), store.dark),
+            theme: _theme(ink, store.dark),
             builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
               value: SystemUiOverlayStyle(
                 statusBarColor: Colors.transparent,
                 statusBarIconBrightness: store.dark ? Brightness.light : Brightness.dark,
-                systemNavigationBarColor: store.dark ? Colors.black : Colors.white,
+                systemNavigationBarColor: store.dark ? Colors.black : pageBg,
                 systemNavigationBarIconBrightness: store.dark ? Brightness.light : Brightness.dark,
               ),
-              child: child!,
+              child: store.dark ? ColorFiltered(colorFilter: kDarkFilter, child: child!) : child!,
             ),
             home: const SplashScreen(),
           ),
@@ -114,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(milliseconds: 160), () {
+    Timer(const Duration(milliseconds: 450), () {
       if (!mounted) return;
       final store = StoreScope.read(context);
       Navigator.of(context).pushReplacement(MaterialPageRoute(
@@ -127,7 +127,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     final s = StoreScope.of(context);
     return Scaffold(
-      backgroundColor: pageBg,
+      backgroundColor: Colors.white,
       body: Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const BrandLogo(size: 72),
@@ -175,7 +175,7 @@ class _StartupLoginGateState extends State<StartupLoginGate> {
 
   @override
   Widget build(BuildContext context) => const Scaffold(
-        backgroundColor: pageBg,
+        backgroundColor: Colors.white,
         body: Center(child: CircularProgressIndicator()),
       );
 }
@@ -208,18 +208,18 @@ class _MainShellState extends State<MainShell> {
       body: SafeArea(bottom: false, child: IndexedStack(index: index, children: pages)),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          color: ink,
+          color: Colors.white,
           borderRadius: radius,
           boxShadow: [BoxShadow(color: Color(0x1A000000), blurRadius: 20, offset: Offset(0, -4))],
         ),
         child: ClipRRect(
           borderRadius: radius,
           child: NavigationBar(
-            backgroundColor: pageBg,
+            backgroundColor: Colors.white,
             surfaceTintColor: Colors.transparent,
             elevation: 0,
             height: 66,
-            indicatorColor: const Color(0xFF30372B),
+            indicatorColor: const Color(0xFFEDEDED),
             selectedIndex: index,
             onDestinationSelected: (v) => setState(() => index = v),
             destinations: [

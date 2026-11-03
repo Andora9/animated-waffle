@@ -258,86 +258,123 @@ class ProductCard extends StatelessWidget {
     final p = product;
     final fav = s.favourites.contains(p.id);
     final out = p.stock <= 0;
-    final rating = s.ratingOf(p.id);
-    return GestureDetector(
-      onTap: () => openProduct(context, p),
-      child: Container(
-        decoration: softBox(index, radius: 20),
-        clipBehavior: Clip.antiAlias,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFBEA8A7).withOpacity(.55)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0A2A0800), blurRadius: 12, offset: Offset(0, 4)),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Expanded(
-            child: Stack(children: [
-              Positioned.fill(
-                child: NetImage(url: p.images.isEmpty ? '' : p.images.first, fallback: iconFallback(s.iconKeyFor(p.category))),
-              ),
-              if (p.discount > 0)
-                Positioned(
-                  left: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: accentOf(context), borderRadius: BorderRadius.circular(20)),
-                    child: Text('${p.discount}% OFF', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900)),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Container(
+                  color: const Color(0xFFFADBD8).withOpacity(.45),
+                  child: NetImage(
+                    url: p.images.isEmpty ? '' : p.images.first,
+                    fallback: iconFallback(s.iconKeyFor(p.category)),
                   ),
                 ),
-              // small wishlist heart
-              Positioned(
-                right: 2,
-                top: 2,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => s.toggleFavourite(p.id),
-                  child: Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                      child: Icon(fav ? Icons.favorite : Icons.favorite_border, size: 13, color: fav ? const Color(0xFFE11D48) : ink),
+                Positioned(
+                  right: 9,
+                  top: 9,
+                  child: Material(
+                    color: Colors.white.withOpacity(.96),
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () => s.toggleFavourite(p.id),
+                      child: SizedBox(
+                        width: 34,
+                        height: 34,
+                        child: Icon(
+                          fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          size: 18,
+                          color: fav ? const Color(0xFF8B2635) : ink,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              if (out)
-                Positioned.fill(
-                  child: Container(
+                if (out)
+                  Container(
                     color: const Color(0x66FFFFFF),
                     alignment: Alignment.center,
-                    child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: danger)),
+                    child: const Text(
+                      'OUT OF STOCK',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: danger),
+                    ),
                   ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  p.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, height: 1.2, fontWeight: FontWeight.w800, color: ink),
                 ),
-            ]),
+                const SizedBox(height: 4),
+                Text(
+                  p.brand.isEmpty ? 'Zenvora' : p.brand,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '₹${p.price}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: ink),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    SizedBox(
+                      height: 32,
+                      child: FilledButton(
+                        onPressed: () => openProduct(context, p),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: ink,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 13),
+                          minimumSize: const Size(0, 32),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                        ),
+                        child: const Text('View', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          Container(
-            width: double.infinity,
-            color: const Color(0xB3FFFFFF),
-            padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(p.brand, style: const TextStyle(color: muted, fontSize: 9, letterSpacing: 1.2, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 3),
-              Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, height: 1.2, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Row(children: [
-                Text('₹${p.price}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
-                const SizedBox(width: 5),
-                if (p.mrp > p.price)
-                  Flexible(child: Text('₹${p.mrp}', overflow: TextOverflow.ellipsis, style: const TextStyle(color: muted, fontSize: 10, decoration: TextDecoration.lineThrough))),
-                const Spacer(),
-                if (rating > 0) ...[
-                  const Icon(Icons.star_rounded, size: 13, color: Color(0xFFF59E0B)),
-                  Text(rating.toStringAsFixed(1), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
-                ],
-              ]),
-            ]),
-          ),
-        ]),
+        ],
       ),
     );
   }
 }
 
 SliverGridDelegate productGridDelegate() =>
-    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, childAspectRatio: .68);
+    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, childAspectRatio: .62);
 
 // ------------------------------------------------------------------ FOOTER
 class FooterBlock extends StatelessWidget {

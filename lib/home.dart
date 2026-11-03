@@ -55,19 +55,14 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF171717),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.monetization_on_outlined, size: 17, color: Colors.white),
-                      SizedBox(width: 6),
-                      Text('Rewards', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
-                    ],
+                Material(
+                  color: ink,
+                  shape: const CircleBorder(),
+                  child: IconButton(
+                    tooltip: 'Rewards',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => toast(context, 'Rewards are coming soon'),
+                    icon: const Icon(Icons.toll_outlined, size: 20, color: Colors.white),
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -145,6 +140,26 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
         ),
+        if (products.isNotEmpty) ...[
+          SliverToBoxAdapter(
+            child: _ProductRail(
+              title: 'New arrivals',
+              products: products.reversed.take(8).toList(),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: _ProductRail(
+              title: 'Trending now',
+              products: ([...products]..sort((a, b) => s.ratingOf(b.id).compareTo(s.ratingOf(a.id)))).take(8).toList(),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: _ProductRail(
+              title: 'Curated for you',
+              products: products.take(8).toList(),
+            ),
+          ),
+        ],
         SliverToBoxAdapter(
           child: SectionHeading(
             title: s.selectedBrand == 'All' ? 'Popular products' : '${s.selectedBrand} collection',
@@ -162,6 +177,36 @@ class HomeScreen extends StatelessWidget {
               gridDelegate: productGridDelegate(),
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _ProductRail extends StatelessWidget {
+  final String title;
+  final List<Product> products;
+  const _ProductRail({required this.title, required this.products});
+
+  @override
+  Widget build(BuildContext context) {
+    if (products.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeading(title: title),
+        SizedBox(
+          height: 286,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+            itemCount: products.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) => SizedBox(
+              width: 174,
+              child: ProductCard(product: products[index], index: index),
+            ),
+          ),
+        ),
       ],
     );
   }
