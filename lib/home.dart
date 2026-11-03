@@ -311,21 +311,99 @@ class SearchScreen extends StatefulWidget {
 }
 class _SearchScreenState extends State<SearchScreen> {
   final controller = TextEditingController();
-  @override void dispose() { controller.dispose(); super.dispose(); }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final s = StoreScope.of(context); final matches = s.listProducts(q: controller.text, sortBy: 'Featured'); final list = matches.isEmpty && controller.text.trim().isNotEmpty ? s.listProducts(sortBy: 'Top Rated').take(8).toList() : matches;
-    return Scaffold(appBar: AppBar(title: const Text('Search products')),
-      body: Column(children: [
-        Padding(padding: const EdgeInsets.all(16), child: TextField(controller: controller, autofocus: true, onChanged: (v) => setState(() {}),
-          decoration: InputDecoration(hintText: 'Search products, brands, categories', prefixIcon: const Icon(Icons.search),
-            suffixIcon: IconButton(onPressed: () { controller.clear(); setState(() {}); }, icon: const Icon(Icons.close))))),
-        Expanded(child: list.isEmpty ? const EmptyState(title: 'No products yet', subtitle: 'Products will appear here.', icon: Icons.search_off_rounded)
-          : Column(children: [if (matches.isEmpty && controller.text.trim().isNotEmpty) const Padding(padding: EdgeInsets.fromLTRB(16, 0, 16, 8), child: Align(alignment: Alignment.centerLeft, child: Text('No exact match — you may like these', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: muted)))), Expanded(child: ListView.separated(padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: list.length, separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (c, i) => ListTile(contentPadding: const EdgeInsets.symmetric(vertical: 6), leading: ProductThumb(product: list[i]),
-                title: Text(list[i].name, style: const TextStyle(fontWeight: FontWeight.w800)),
-                subtitle: Text('${list[i].brand} · ₹${list[i].price}'), trailing: const Icon(Icons.chevron_right), onTap: () => openProduct(context, list[i])); } }
-      ]));
+    final store = StoreScope.of(context);
+    final matches = store.listProducts(
+      q: controller.text,
+      sortBy: 'Featured',
+    );
+    final hasQuery = controller.text.trim().isNotEmpty;
+    final products = matches.isEmpty && hasQuery
+        ? store.listProducts(sortBy: 'Top Rated').take(8).toList()
+        : matches;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Search products')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: controller,
+              autofocus: true,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Search products, brands, categories',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    controller.clear();
+                    setState(() {});
+                  },
+                  icon: const Icon(Icons.close),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: products.isEmpty
+                ? const EmptyState(
+                    title: 'No products yet',
+                    subtitle: 'Products will appear here.',
+                    icon: Icons.search_off_rounded,
+                  )
+                : Column(
+                    children: [
+                      if (matches.isEmpty && hasQuery)
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'No exact match — you may like these',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: muted,
+                              ),
+                            ),
+                          ),
+                        ),
+                      Expanded(
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: products.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final product = products[index];
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                              leading: ProductThumb(product: product),
+                              title: Text(
+                                product.name,
+                                style: const TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                              subtitle: Text('${product.brand} · ₹${product.price}'),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () => openProduct(context, product),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
