@@ -142,12 +142,13 @@ class ProductCard extends StatelessWidget {
           Expanded(flex: 3, child: ClipRRect(borderRadius: BorderRadius.circular(14),
             child: Stack(fit: StackFit.expand, children: [
               // Fixed 3:4 image stage. Product photos stay contained and never stretch.
-              AspectRatio(aspectRatio: 3 / 4,
-                child: Container(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
+              Positioned.fill(child: Container(
+                decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
                   colors: heroColors[index % heroColors.length])),
-                  child: p.images.isNotEmpty && p.images.first.trim().isNotEmpty
-                    ? Padding(padding: const EdgeInsets.all(7), child: NetImage(url: p.images.first, fit: BoxFit.contain, fallback: const SizedBox.expand()))
-                    : const SizedBox.expand())),
+                child: p.images.isNotEmpty && p.images.first.trim().isNotEmpty
+                  ? NetImage(url: p.images.first, fit: BoxFit.contain, fallback: const SizedBox.expand())
+                  : const SizedBox.expand(),
+              )),
               Positioned(top: 7, right: 7, child: Material(color: Colors.white.withOpacity(.94), shape: const CircleBorder(),
                 child: InkWell(customBorder: const CircleBorder(), onTap: () => s.toggleFavourite(p.id),
                   child: Padding(padding: const EdgeInsets.all(7), child: Icon(fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
@@ -180,7 +181,7 @@ class ProductCard extends StatelessWidget {
 }
 
 SliverGridDelegate productGridDelegate() =>
-    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 14, childAspectRatio: .66);
+    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 14, childAspectRatio: .64);
 
 class FooterBlock extends StatelessWidget {
   const FooterBlock({super.key});
