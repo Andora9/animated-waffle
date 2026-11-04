@@ -78,34 +78,43 @@ class HomeScreen extends StatelessWidget {
           const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.symmetric(vertical: 30),
             child: EmptyState(title: 'No products found', subtitle: 'Try another brand or category.')))
         else
-          SliverPadding(padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-            sliver: SliverGrid(delegate: SliverChildBuilderDelegate(
-              (c, i) => ProductCard(product: products[i], index: i), childCount: products.length),
-              gridDelegate: productGridDelegate())),
+          _productRows(products),
         const SliverToBoxAdapter(child: SizedBox(height: 8)),
         const SliverToBoxAdapter(child: SectionHeading(title: 'Trending now')),
         if (products.isNotEmpty)
-          SliverPadding(padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-            sliver: SliverGrid(delegate: SliverChildBuilderDelegate(
-              (c, i) => ProductCard(product: products[(i + 1) % products.length], index: i + 1),
-              childCount: products.length > 4 ? 4 : products.length), gridDelegate: productGridDelegate())),
+          _productRows(products, offset: 1, limit: 4),
         const SliverToBoxAdapter(child: SizedBox(height: 8)),
         const SliverToBoxAdapter(child: SectionHeading(title: 'Curated for you')),
         if (products.isNotEmpty)
-          SliverPadding(padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-            sliver: SliverGrid(delegate: SliverChildBuilderDelegate(
-              (c, i) => ProductCard(product: products[(i + 2) % products.length], index: i + 2),
-              childCount: products.length > 4 ? 4 : products.length), gridDelegate: productGridDelegate())),
+          _productRows(products, offset: 2, limit: 4),
         const SliverToBoxAdapter(child: SizedBox(height: 8)),
         const SliverToBoxAdapter(child: SectionHeading(title: 'Popular products')),
         if (products.isNotEmpty)
-          SliverPadding(padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
-            sliver: SliverGrid(delegate: SliverChildBuilderDelegate(
-              (c, i) => ProductCard(product: products[(i + products.length ~/ 2) % products.length], index: i + 3),
-              childCount: products.length > 4 ? 4 : products.length), gridDelegate: productGridDelegate())),
+          _productRows(products, offset: products.length ~/ 2, limit: 4, bottom: 24),
       ]),
     );
   }
+}
+
+
+// Amazon-style full-width product rows for mobile screens.
+Widget _productRows(List<Product> products, {int offset = 0, int? limit, double bottom = 10}) {
+  final count = limit == null || limit > products.length ? products.length : limit;
+  return SliverPadding(
+    padding: EdgeInsets.fromLTRB(14, 0, 14, bottom),
+    sliver: SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) => Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: ProductCard(
+            product: products[(index + offset) % products.length],
+            index: index + offset,
+          ),
+        ),
+        childCount: count,
+      ),
+    ),
+  );
 }
 
 class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
@@ -380,8 +389,12 @@ class CategoryProductsScreen extends StatelessWidget {
           const Spacer(), Text(s.sort, style: const TextStyle(color: muted, fontSize: 12)),
         ])),
         Expanded(child: list.isEmpty ? const EmptyState(title: 'No products yet', subtitle: 'Products in this category will appear here.')
-          : GridView.builder(padding: const EdgeInsets.fromLTRB(14, 6, 14, 20), itemCount: list.length,
-              gridDelegate: productGridDelegate(), itemBuilder: (c, i) => ProductCard(product: list[i], index: i))),
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(14, 6, 14, 20),
+              itemCount: list.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (c, i) => ProductCard(product: list[i], index: i),
+            )),
       ]));
   }
 }
@@ -552,8 +565,11 @@ class WishlistScreen extends StatelessWidget {
     final s = StoreScope.of(context); final list = s.products.where((p) => p.active && s.favourites.contains(p.id)).toList();
     return Scaffold(appBar: AppBar(title: const Text('Saved products')),
       body: list.isEmpty ? const EmptyState(title: 'Nothing saved yet', subtitle: 'Tap the heart on a product to save it.', icon: Icons.favorite_border)
-        : GridView.builder(padding: const EdgeInsets.all(14), itemCount: list.length,
-            gridDelegate: productGridDelegate(),
-            itemBuilder: (c, i) => ProductCard(product: list[i], index: i)));
+        : ListView.separated(
+            padding: const EdgeInsets.all(14),
+            itemCount: list.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (c, i) => ProductCard(product: list[i], index: i),
+          ));
   }
 }

@@ -123,48 +123,181 @@ void openProduct(BuildContext context, Product p) =>
     Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailsScreen(product: p)));
 
 class ProductCard extends StatelessWidget {
-  final Product product; final int index;
+  final Product product;
+  final int index;
   const ProductCard({super.key, required this.product, this.index = 0});
-  @override Widget build(BuildContext context) {
-    final s = StoreScope.of(context); final p = product;
-    final fav = s.favourites.contains(p.id); final out = p.stock <= 0; final rating = s.ratingOf(p.id);
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final p = product;
+    final fav = store.favourites.contains(p.id);
+    final out = p.stock <= 0;
+    final rating = store.ratingOf(p.id);
     final hasImg = p.images.isNotEmpty && p.images.first.trim().isNotEmpty;
-    return GestureDetector(onTap: () => openProduct(context, p), child: Container(padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFEDEEF1)),
-        boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 3))]),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // image fills the whole thumbnail (no grey box behind it); heart on the right corner
-        Expanded(child: SizedBox(width: double.infinity, child: Stack(fit: StackFit.expand, children: [
-          ClipRRect(borderRadius: BorderRadius.circular(13), child: hasImg
-            ? NetImage(url: p.images.first, fit: BoxFit.cover, fallback: Container(color: Colors.white, child: iconFallback(s.iconKeyFor(p.category), size: 34)))
-            : Container(color: const Color(0xFFF5F5F5), child: iconFallback(s.iconKeyFor(p.category), size: 34))),
-          if (p.discount > 0) Positioned(top: 7, left: 7, child: Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3), decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)), child: Text('${p.discount}% OFF', style: const TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w900)))),
-          Positioned(top: 6, right: 6, child: Material(color: Colors.white.withOpacity(.95), shape: const CircleBorder(), elevation: 1, shadowColor: const Color(0x33000000), child: InkWell(customBorder: const CircleBorder(), onTap: () => s.toggleFavourite(p.id), child: Padding(padding: const EdgeInsets.all(6), child: Icon(fav ? Icons.favorite : Icons.favorite_border, size: 16, color: fav ? const Color(0xFFE35D58) : ink))))),
-          if (out) Container(decoration: BoxDecoration(color: const Color(0x99FFFFFF), borderRadius: BorderRadius.circular(13)), alignment: Alignment.center,
-            child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: ink))),
-        ]))),
-        const SizedBox(height: 8),
-        Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
-        const SizedBox(height: 3),
-        Row(children: [
-          const Icon(Icons.star_rounded, size: 13, color: Color(0xFFF2B544)), const SizedBox(width: 2),
-          Text(rating > 0 ? rating.toStringAsFixed(1) : 'New', style: const TextStyle(fontSize: 10, color: Color(0xFF777777), fontWeight: FontWeight.w700)),
-          const Spacer(),
-          if (p.mrp > p.price) Padding(padding: const EdgeInsets.only(right: 5), child: Text('₹${p.mrp}', style: const TextStyle(fontSize: 9.5, color: Color(0xFF9A9A9A), decoration: TextDecoration.lineThrough))),
-          Text('₹${p.price}', style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w900, color: Color(0xFF1A1A1A))),
-        ]),
-        const SizedBox(height: 8),
-        SizedBox(width: double.infinity, height: 32, child: FilledButton(
-          onPressed: () => openProduct(context, p),
-          style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white,
-            padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap, shape: const StadiumBorder()),
-          child: const Text('View details', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)))),
-      ])));
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(13),
+      child: InkWell(
+        onTap: () => openProduct(context, p),
+        borderRadius: BorderRadius.circular(13),
+        child: Container(
+          height: 204,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: const Color(0xFFE9E9E6)),
+            boxShadow: const [
+              BoxShadow(color: Color(0x09000000), blurRadius: 8, offset: Offset(0, 2)),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Compact image panel, similar to the supplied shopping-list reference.
+              Expanded(
+                flex: 40,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Container(
+                      color: const Color(0xFFF4F4F2),
+                      padding: const EdgeInsets.all(10),
+                      child: hasImg
+                          ? NetImage(
+                              url: p.images.first,
+                              fit: BoxFit.contain,
+                              fallback: iconFallback(store.iconKeyFor(p.category), size: 42),
+                            )
+                          : iconFallback(store.iconKeyFor(p.category), size: 42),
+                    ),
+                    if (p.discount > 0)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD4E684),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text(
+                            '${p.discount}% OFF',
+                            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF242424)),
+                          ),
+                        ),
+                      ),
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: Material(
+                        color: Colors.white,
+                        shape: const CircleBorder(),
+                        elevation: 2,
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => store.toggleFavourite(p.id),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Icon(
+                              fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                              size: 19,
+                              color: fav ? const Color(0xFFE35D58) : const Color(0xFF242424),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (out)
+                      Container(
+                        color: const Color(0x99FFFFFF),
+                        alignment: Alignment.center,
+                        child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                flex: 60,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 11, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        p.brand.isNotEmpty ? p.brand.toUpperCase() : (p.category.isNotEmpty ? p.category.toUpperCase() : 'FEATURED'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 9, letterSpacing: .7, color: Color(0xFF777777), fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 5),
+                      Expanded(
+                        child: Text(
+                          p.name,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 14, height: 1.22, fontWeight: FontWeight.w600, color: Color(0xFF242424)),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF07822)),
+                          const SizedBox(width: 2),
+                          Text(rating > 0 ? rating.toStringAsFixed(1) : 'New', style: const TextStyle(fontSize: 11, color: Color(0xFF555555), fontWeight: FontWeight.w700)),
+                          const SizedBox(width: 4),
+                          const Expanded(child: Text('Customer rating', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 9, color: Color(0xFF888888)))),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('₹${p.price}', style: const TextStyle(fontSize: 19, height: 1, fontWeight: FontWeight.w900, color: Color(0xFF242424))),
+                          if (p.mrp > p.price) ...[
+                            const SizedBox(width: 6),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 1),
+                              child: Text('₹${p.mrp}', style: const TextStyle(fontSize: 10, color: Color(0xFF888888), decoration: TextDecoration.lineThrough)),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 36,
+                        child: FilledButton(
+                          onPressed: out ? null : () async {
+                            await store.addToCart(p.id);
+                            if (context.mounted) toast(context, '${p.name} added to cart');
+                          },
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFFD4E684),
+                            disabledBackgroundColor: const Color(0xFFE7E7E4),
+                            foregroundColor: const Color(0xFF242424),
+                            disabledForegroundColor: const Color(0xFF777777),
+                            padding: EdgeInsets.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                          ),
+                          child: Text(out ? 'Unavailable' : 'Add to cart', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
+// Retained for any other screen that still uses a two-column product grid.
 SliverGridDelegate productGridDelegate() =>
     const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, mainAxisExtent: 252);
 
