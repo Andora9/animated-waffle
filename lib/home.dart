@@ -272,31 +272,40 @@ class _SalePromoBannerState extends State<SalePromoBanner> {
     if (!st.saleEnabled) return const SizedBox.shrink();
     final endAt = DateTime.tryParse(st.saleEndAt)?.toLocal();
     if (endAt != null && endAt.isBefore(DateTime.now())) return const SizedBox.shrink();
+    final hasImg = st.saleBgImage.trim().isNotEmpty;
+    final custom = _hex(st.saleBgColor);
+    final base = custom ?? kBrandGreen;
+    // text colour: white on image / dark colours, black on light colours
+    final fg = (hasImg || base.computeLuminance() < .45) ? Colors.white : Colors.black;
+    final fgSoft = fg == Colors.white ? const Color(0xCCFFFFFF) : Colors.black87;
+    final btnBg = fg == Colors.white ? Colors.white : Colors.black;
+    final btnFg = fg == Colors.white ? Colors.black : Colors.white;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-      padding: const EdgeInsets.fromLTRB(16, 15, 16, 14),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFB9E277), kBrandGreen, Color(0xFFA9D96A)],
-        ),
+        gradient: custom != null
+            ? LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [base, base])
+            : const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFB9E277), kBrandGreen, Color(0xFFA9D96A)]),
         borderRadius: BorderRadius.circular(22),
         boxShadow: const [BoxShadow(color: Color(0x1A263321), blurRadius: 16, offset: Offset(0, 7))],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      child: Stack(children: [
+        if (hasImg) Positioned.fill(child: NetImage(url: st.saleBgImage, fit: BoxFit.cover, fallback: const SizedBox.shrink())),
+        if (hasImg) Positioned.fill(child: Container(color: const Color(0x66000000))),
+        Padding(padding: const EdgeInsets.fromLTRB(16, 15, 16, 14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Container(
             width: 32, height: 32,
-            decoration: BoxDecoration(color: Colors.white.withOpacity(.55), borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.local_fire_department_rounded, color: Colors.black, size: 19),
+            decoration: BoxDecoration(color: (fg == Colors.white ? Colors.white24 : Colors.white.withOpacity(.55)), borderRadius: BorderRadius.circular(10)),
+            child: Icon(Icons.local_fire_department_rounded, color: fg == Colors.white ? Colors.white : Colors.black, size: 19),
           ),
           const SizedBox(width: 9),
-          Expanded(child: Text(st.saleTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.black))),
+          Expanded(child: Text(st.saleTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: fg))),
           FilledButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.black, foregroundColor: Colors.white,
+              backgroundColor: btnBg, foregroundColor: btnFg,
               padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
               minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -310,14 +319,14 @@ class _SalePromoBannerState extends State<SalePromoBanner> {
         const SizedBox(height: 15),
         Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('FLAT', style: TextStyle(fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.w900, color: Color(0xFF3F5A1E))),
+            Text('FLAT', style: TextStyle(fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.w900, color: fgSoft)),
             const SizedBox(height: 2),
-            Text(st.saleOffer, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 30, height: 1, letterSpacing: -.8, fontWeight: FontWeight.w900, color: Colors.black)),
+            Text(st.saleOffer, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 30, height: 1, letterSpacing: -.8, fontWeight: FontWeight.w900, color: fg)),
           ])),
           if (endAt != null)
             Container(
               padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
-              decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(13)),
+              decoration: BoxDecoration(color: fg == Colors.white ? const Color(0x55000000) : Colors.black, borderRadius: BorderRadius.circular(13)),
               child: Column(children: [
                 const Text('ENDS IN', style: TextStyle(color: Color(0xFFD7E8BE), fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                 const SizedBox(height: 4),
@@ -328,14 +337,23 @@ class _SalePromoBannerState extends State<SalePromoBanner> {
         if (st.saleNote.isNotEmpty) ...[
           const SizedBox(height: 13),
           Row(children: [
-            Container(width: 5, height: 5, decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle)),
+            Container(width: 5, height: 5, decoration: BoxDecoration(color: fgSoft, shape: BoxShape.circle)),
             const SizedBox(width: 7),
-            Expanded(child: Text(st.saleNote, style: const TextStyle(fontSize: 10, color: Colors.black87, fontWeight: FontWeight.w700))),
-            const Icon(Icons.bolt_rounded, size: 16, color: Colors.black54),
+            Expanded(child: Text(st.saleNote, style: TextStyle(fontSize: 10, color: fgSoft, fontWeight: FontWeight.w700))),
+            Icon(Icons.bolt_rounded, size: 16, color: fgSoft),
           ]),
         ],
+      ])),
       ]),
     );
+  }
+
+  Color? _hex(String v) {
+    var h = v.trim().replaceAll('#', '');
+    if (h.length == 6) h = 'FF$h';
+    if (h.length != 8) return null;
+    final n = int.tryParse(h, radix: 16);
+    return n == null ? null : Color(n);
   }
 }
 
@@ -535,7 +553,7 @@ class WishlistScreen extends StatelessWidget {
     return Scaffold(appBar: AppBar(title: const Text('Saved products')),
       body: list.isEmpty ? const EmptyState(title: 'Nothing saved yet', subtitle: 'Tap the heart on a product to save it.', icon: Icons.favorite_border)
         : GridView.builder(padding: const EdgeInsets.all(14), itemCount: list.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, childAspectRatio: .69),
+            gridDelegate: productGridDelegate(),
             itemBuilder: (c, i) => ProductCard(product: list[i], index: i)));
   }
 }

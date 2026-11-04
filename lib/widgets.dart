@@ -128,59 +128,45 @@ class ProductCard extends StatelessWidget {
   @override Widget build(BuildContext context) {
     final s = StoreScope.of(context); final p = product;
     final fav = s.favourites.contains(p.id); final out = p.stock <= 0; final rating = s.ratingOf(p.id);
-    final size = p.sizes.isEmpty ? '' : p.sizes[p.sizes.length ~/ 2];
-    final color = p.colors.isEmpty ? '' : p.colors.first;
     final hasImg = p.images.isNotEmpty && p.images.first.trim().isNotEmpty;
     return GestureDetector(onTap: () => openProduct(context, p), child: Container(padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFEDEEF1)),
-        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 9, offset: Offset(0, 3))]),
+        boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 3))]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // thumbnail: grey rounded box, category badge top-right
-        SizedBox(height: 120, width: double.infinity, child: Stack(fit: StackFit.expand, children: [
-          ClipRRect(borderRadius: BorderRadius.circular(12), child: Container(
-            color: const Color(0xFFF2F4F7),
-            padding: const EdgeInsets.all(6),
-            child: hasImg
-              ? NetImage(url: p.images.first, fit: BoxFit.contain, fallback: iconFallback(s.iconKeyFor(p.category), size: 34))
-              : iconFallback(s.iconKeyFor(p.category), size: 34))),
-          if (p.discount > 0) Positioned(top: 6, left: 6, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)), child: Text('${p.discount}% OFF', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900)))),
-          if (p.category.isNotEmpty) Positioned(top: 6, right: 6, child: Container(constraints: const BoxConstraints(maxWidth: 60), padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)), child: Text(p.category, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 8, color: Color(0xFF777777), fontWeight: FontWeight.w600)))),
-          Positioned(bottom: 6, right: 6, child: Material(color: Colors.white.withOpacity(.96), shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: () => s.toggleFavourite(p.id), child: Padding(padding: const EdgeInsets.all(5), child: Icon(fav ? Icons.favorite : Icons.favorite_border, size: 14, color: fav ? const Color(0xFFE35D58) : ink))))),
-          if (out) Container(color: const Color(0x66FFFFFF), alignment: Alignment.center,
+        // image fills the whole thumbnail (no grey box behind it); heart on the right corner
+        Expanded(child: SizedBox(width: double.infinity, child: Stack(fit: StackFit.expand, children: [
+          ClipRRect(borderRadius: BorderRadius.circular(13), child: hasImg
+            ? NetImage(url: p.images.first, fit: BoxFit.cover, fallback: Container(color: Colors.white, child: iconFallback(s.iconKeyFor(p.category), size: 34)))
+            : Container(color: const Color(0xFFF5F5F5), child: iconFallback(s.iconKeyFor(p.category), size: 34))),
+          if (p.discount > 0) Positioned(top: 7, left: 7, child: Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3), decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)), child: Text('${p.discount}% OFF', style: const TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w900)))),
+          Positioned(top: 6, right: 6, child: Material(color: Colors.white.withOpacity(.95), shape: const CircleBorder(), elevation: 1, shadowColor: const Color(0x33000000), child: InkWell(customBorder: const CircleBorder(), onTap: () => s.toggleFavourite(p.id), child: Padding(padding: const EdgeInsets.all(6), child: Icon(fav ? Icons.favorite : Icons.favorite_border, size: 16, color: fav ? const Color(0xFFE35D58) : ink))))),
+          if (out) Container(decoration: BoxDecoration(color: const Color(0x99FFFFFF), borderRadius: BorderRadius.circular(13)), alignment: Alignment.center,
             child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: ink))),
-        ])),
+        ]))),
         const SizedBox(height: 8),
         Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
+          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
         const SizedBox(height: 3),
         Row(children: [
-          const Icon(Icons.star_rounded, size: 12, color: Color(0xFFF2B544)), const SizedBox(width: 2),
+          const Icon(Icons.star_rounded, size: 13, color: Color(0xFFF2B544)), const SizedBox(width: 2),
           Text(rating > 0 ? rating.toStringAsFixed(1) : 'New', style: const TextStyle(fontSize: 10, color: Color(0xFF777777), fontWeight: FontWeight.w700)),
           const Spacer(),
-          Text('₹${p.price}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
+          if (p.mrp > p.price) Padding(padding: const EdgeInsets.only(right: 5), child: Text('₹${p.mrp}', style: const TextStyle(fontSize: 9.5, color: Color(0xFF9A9A9A), decoration: TextDecoration.lineThrough))),
+          Text('₹${p.price}', style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w900, color: Color(0xFF1A1A1A))),
         ]),
-        const Spacer(),
-        Row(children: [
-          Expanded(child: SizedBox(height: 28, child: OutlinedButton(
-            onPressed: out ? null : () async { await s.addToCart(p.id, size: size, color: color); if (context.mounted) toast(context, 'Added to cart'); },
-            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 3), side: const BorderSide(color: Color(0xFFBDBDBD)),
-              shape: const StadiumBorder(), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-            child: const FittedBox(child: Text('Add to Cart', style: TextStyle(fontSize: 9, color: Color(0xFF222222), fontWeight: FontWeight.w700)))))),
-          const SizedBox(width: 5),
-          Expanded(child: SizedBox(height: 28, child: FilledButton(
-            onPressed: out ? null : () => openProduct(context, p),
-            style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 3), tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: const StadiumBorder()),
-            child: const FittedBox(child: Text('Buy Now', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700))))))
-        ]),
+        const SizedBox(height: 8),
+        SizedBox(width: double.infinity, height: 32, child: FilledButton(
+          onPressed: () => openProduct(context, p),
+          style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white,
+            padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap, shape: const StadiumBorder()),
+          child: const Text('View details', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)))),
       ])));
   }
 }
 
 SliverGridDelegate productGridDelegate() =>
-    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, childAspectRatio: .64);
+    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, mainAxisExtent: 252);
 
 class FooterBlock extends StatelessWidget {
   const FooterBlock({super.key});

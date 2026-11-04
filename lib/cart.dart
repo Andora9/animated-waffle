@@ -18,7 +18,6 @@ class CartScreen extends StatefulWidget {
 class _CartScreenState extends State<CartScreen> {
   final code = TextEditingController();
   String couponMsg = '';
-  String? _checkoutRequestId;
 
   @override
   void dispose() {
@@ -26,142 +25,335 @@ class _CartScreenState extends State<CartScreen> {
     super.dispose();
   }
 
+  Future<void> _remove(StoreController s, CartLine l) async {
+    final copy = CartLine(pid: l.pid, size: l.size, color: l.color, qty: l.qty, subDays: l.subDays);
+    await s.setQty(l, 0);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: const Text('Item removed'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(label: 'UNDO', onPressed: () => s.restoreLine(copy)),
+      ));
+  }
+
+  Future<void> _apply(StoreController s, String c) async {
+    final r = await s.applyCoupon(c);
+    if (!mounted) return;
+    setState(() => couponMsg = r ?? '');
+    if (r == null) code.clear();
+  }
+
+  Widget _qtyBtn(IconData icon, VoidCallback onTap, {bool primary = false}) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 26, height: 26,
+          decoration: BoxDecoration(color: primary ? const Color(0xFFFF7A3D) : const Color(0xFFE4E4E7), shape: BoxShape.circle),
+          child: Icon(icon, size: 15, color: primary ? Colors.white : ink),
+        ),
+      );
+
+  Widget _card({required Widget child, EdgeInsets padding = const EdgeInsets.all(14)}) => Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: padding,
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFEDEEF1))),
+        child: child,
+      );
+
+  Widget _line(StoreController s, CartLine l) {
+    final p = s.productById(l.pid)!;
+    final unit = s.unitPrice(l);
+    final low = p.stock > 0 && p.stock <= 5;
+    final tags = <String>[
+      if (l.size.isNotEmpty) 'Size ${l.size}',
+      if (l.color.isNotEmpty) l.color,
+    ];
+    return Dismissible(
+      key: ValueKey(l.key),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => _remove(s, l),
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        decoration: BoxDecoration(color: const Color(0xFFFFE9E0), borderRadius: BorderRadius.circular(18)),
+        child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFE5532D)),
+      ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: const Color(0xFFF7F7F9), borderRadius: BorderRadius.circular(18)),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          GestureDetector(
+            onTap: () => openProduct(context, p),
+            child: Container(
+              width: 84, height: 96, clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+              child: NetImage(url: p.images.isEmpty ? '' : p.images.first, fit: BoxFit.cover, fallback: iconFallback(s.iconKeyFor(p.category), size: 30)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, height: 1.2))),
+                GestureDetector(
+                  onTap: () => _remove(s, l),
+                  child: const Padding(padding: EdgeInsets.only(left: 6), child: Icon(Icons.close_rounded, size: 18, color: muted)),
+                ),
+              ]),
+              if (p.brand.isNotEmpty) Text(p.brand, style: const TextStyle(color: muted, fontSize: 11)),
+              if (tags.isNotEmpty || l.subDays > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 5),
+                  child: Wrap(spacing: 5, runSpacing: 4, children: [
+                    for (final tg in tags)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6), border: Border.all(color: line)),
+                        child: Text(tg, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+                      ),
+                    if (l.subDays > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(color: const Color(0xFFFFEDE5), borderRadius: BorderRadius.circular(6)),
+                        child: Text('Every ${l.subDays} days', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFE5532D))),
+                      ),
+                  ]),
+                ),
+              if (low) Padding(padding: const EdgeInsets.only(top: 4), child: Text('Only ${p.stock} left', style: const TextStyle(color: Color(0xFFD97706), fontSize: 10.5, fontWeight: FontWeight.w800))),
+              const SizedBox(height: 8),
+              Row(children: [
+                _qtyBtn(Icons.remove, () => l.qty <= 1 ? _remove(s, l) : s.setQty(l, l.qty - 1)),
+                Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: Text('${l.qty}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14))),
+                _qtyBtn(Icons.add, () {
+                  if (l.qty >= p.stock) {
+                    toast(context, 'Only ${p.stock} available');
+                  } else {
+                    s.setQty(l, l.qty + 1);
+                  }
+                }, primary: true),
+                const Spacer(),
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Text('₹${unit * l.qty}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                  if (p.mrp > unit) Text('₹${p.mrp * l.qty}', style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 10.5, decoration: TextDecoration.lineThrough)),
+                ]),
+              ]),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _freeShipCard(StoreController s) {
+    final st = s.settings;
+    final free = s.shipping == 0;
+    final need = st.freeShipAbove - s.subtotal;
+    final progress = st.freeShipAbove <= 0 ? 1.0 : (s.subtotal / st.freeShipAbove).clamp(0.0, 1.0);
+    return _card(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(free ? Icons.check_circle_rounded : Icons.local_shipping_outlined, size: 20, color: free ? success : ink),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              s.isMember ? 'Member perk: FREE & faster delivery' : (free ? 'You have unlocked FREE delivery' : 'Add ₹$need more for FREE delivery'),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+            ),
+          ),
+        ]),
+        if (!free && !s.isMember) ...[
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(value: progress, minHeight: 6, backgroundColor: const Color(0xFFE5E7EB), color: const Color(0xFFFF7A3D)),
+          ),
+        ],
+      ]),
+    );
+  }
+
+  Widget _deliveryCard(StoreController s) => _card(
+        child: Row(children: [
+          const Icon(Icons.location_on_outlined, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(s.pincode.isEmpty ? 'Add delivery PIN code' : 'Deliver to ${s.city.isEmpty ? '' : '${s.city} - '}${s.pincode}',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+              const SizedBox(height: 2),
+              Text('${s.isMember ? 'Express delivery' : 'Estimated delivery'} by ${dateAfter(s.etaDays)}', style: const TextStyle(color: muted, fontSize: 11.5)),
+            ]),
+          ),
+          TextButton(onPressed: () => showPinSheet(context), child: Text(s.pincode.isEmpty ? 'Add' : 'Change')),
+        ]),
+      );
+
+  Widget _couponCard(StoreController s) {
+    final available = s.coupons.where((c) => c.active && c.subtotalOk(s.subtotal)).toList();
+    return _card(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Row(children: [
+          Icon(Icons.local_offer_outlined, size: 19),
+          SizedBox(width: 8),
+          Text('Coupons & offers', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+        ]),
+        const SizedBox(height: 10),
+        if (s.coupon != null && s.couponDiscount > 0)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(color: const Color(0xFFE6F6EC), borderRadius: BorderRadius.circular(12)),
+            child: Row(children: [
+              const Icon(Icons.check_circle, color: success, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text('${s.coupon!.code} applied · you save ₹${s.couponDiscount}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5))),
+              GestureDetector(onTap: () => s.removeCoupon(), child: const Text('Remove', style: TextStyle(color: danger, fontWeight: FontWeight.w800, fontSize: 12))),
+            ]),
+          )
+        else ...[
+          Row(children: [
+            Expanded(
+              child: TextField(
+                controller: code,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(hintText: 'Enter coupon code', contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size(76, 46), backgroundColor: Colors.black),
+              onPressed: () => _apply(s, code.text),
+              child: const Text('Apply'),
+            ),
+          ]),
+          if (available.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final c in available.take(4))
+                GestureDetector(
+                  onTap: () => _apply(s, c.code),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: line, style: BorderStyle.solid)),
+                    child: Text('${c.code} · ${c.label}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+            ]),
+          ],
+        ],
+        if (couponMsg.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text(couponMsg, style: const TextStyle(color: danger, fontSize: 12))),
+      ]),
+    );
+  }
+
+  Widget _summaryCard(StoreController s) => _card(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Order summary', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+          const SizedBox(height: 8),
+          PriceRow(label: 'Subtotal (${s.itemCount} ${s.itemCount == 1 ? 'item' : 'items'})', value: '₹${s.subtotal}'),
+          if (s.couponDiscount > 0) PriceRow(label: 'Coupon ${s.appliedCoupon ?? ''}', value: '-₹${s.couponDiscount}', color: success),
+          PriceRow(label: 'Delivery', value: s.shipping == 0 ? 'FREE' : '₹${s.shipping}', color: s.shipping == 0 ? success : null),
+          if (s.platformFeeAmount > 0) PriceRow(label: 'Platform fee', value: '₹${s.platformFeeAmount}'),
+          if (s.gstAmount > 0) PriceRow(label: 'GST', value: '₹${s.gstAmount}'),
+          const Divider(height: 20),
+          PriceRow(label: 'Total', value: '₹${s.total}', bold: true),
+          if (s.savings + s.couponDiscount > 0)
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(color: const Color(0xFFE6F6EC), borderRadius: BorderRadius.circular(10)),
+              child: Row(children: [
+                const Icon(Icons.savings_outlined, size: 16, color: success),
+                const SizedBox(width: 8),
+                Text('You save ₹${s.savings + s.couponDiscount} on this order', style: const TextStyle(color: success, fontWeight: FontWeight.w800, fontSize: 12)),
+              ]),
+            ),
+        ]),
+      );
+
   @override
   Widget build(BuildContext context) {
     final s = StoreScope.of(context);
     final lines = s.cartLines;
-    final st = s.settings;
+    final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: const Text('My Bag'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 18),
-            child: Center(child: Text('${s.itemCount} ${s.itemCount == 1 ? 'item' : 'items'}', style: const TextStyle(color: muted, fontSize: 12, fontWeight: FontWeight.w700))),
+            child: Center(child: Text('${s.itemCount} ${s.itemCount == 1 ? 'item' : 'items'}', style: const TextStyle(color: muted, fontSize: 12.5, fontWeight: FontWeight.w700))),
           ),
         ],
       ),
       body: lines.isEmpty
-          ? const EmptyState(title: 'Your cart is empty', subtitle: 'Explore the collection and add something you love.')
-          : Column(children: [
-              Expanded(
-                child: ListView(padding: const EdgeInsets.all(16), children: [
-                  ...List.generate(lines.length, (i) {
-                    final l = lines[i];
-                    final p = s.productById(l.pid)!;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(11),
-                      decoration: BoxDecoration(color: const Color(0xFFF7F7F9), borderRadius: BorderRadius.circular(16)),
-                      child: Row(children: [
-                        ProductThumb(product: p),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(p.brand, style: const TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w900)),
-                            Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
-                            if (l.size.isNotEmpty || l.color.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Text([if (l.size.isNotEmpty) 'Size ${l.size}', if (l.color.isNotEmpty) l.color].join(' · '),
-                                    style: const TextStyle(color: muted, fontSize: 11)),
-                              ),
-                            const SizedBox(height: 5),
-                            Text('₹${p.price}', style: const TextStyle(fontWeight: FontWeight.w900)),
-                            const SizedBox(height: 7),
-                            Row(children: [
-                              QtyButton(icon: Icons.remove, onTap: () => s.setQty(l, l.qty - 1)),
-                              Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text('${l.qty}', style: const TextStyle(fontWeight: FontWeight.w900))),
-                              QtyButton(
-                                icon: Icons.add,
-                                onTap: () {
-                                  if (l.qty >= p.stock) {
-                                    toast(context, 'Only ${p.stock} available');
-                                  } else {
-                                    s.setQty(l, l.qty + 1);
-                                  }
-                                },
-                              ),
-                            ]),
-                          ]),
-                        ),
-                        IconButton(onPressed: () => s.setQty(l, 0), icon: const Icon(Icons.delete_outline)),
-                      ]),
-                    );
-                  }),
-
-                  // coupon
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: softBox(2, radius: 18),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text('Coupon', style: TextStyle(fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 8),
-                      if (s.coupon != null && s.couponDiscount > 0)
-                        Row(children: [
-                          const Icon(Icons.check_circle, color: success, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text('${s.coupon!.code} applied  (-₹${s.couponDiscount})', style: const TextStyle(fontWeight: FontWeight.w800))),
-                          TextButton(onPressed: () => s.removeCoupon(), child: const Text('Remove')),
-                        ])
-                      else
-                        Row(children: [
-                          Expanded(
-                            child: TextField(
-                              controller: code,
-                              textCapitalization: TextCapitalization.characters,
-                              decoration: const InputDecoration(hintText: 'Enter coupon code', contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          FilledButton(
-                            style: FilledButton.styleFrom(minimumSize: const Size(80, 46)),
-                            onPressed: () async {
-                              final r = await s.applyCoupon(code.text);
-                              setState(() => couponMsg = r ?? '');
-                              if (r == null) code.clear();
-                            },
-                            child: const Text('Apply'),
-                          ),
-                        ]),
-                      if (couponMsg.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text(couponMsg, style: const TextStyle(color: danger, fontSize: 12))),
-                    ]),
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(30),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Container(width: 88, height: 88, decoration: const BoxDecoration(color: Color(0xFFF4F4F6), shape: BoxShape.circle), child: const Icon(Icons.shopping_bag_outlined, size: 38, color: muted)),
+                  const SizedBox(height: 16),
+                  const Text('Your bag is empty', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 6),
+                  const Text('Explore the collection and add something you love.', textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 12.5)),
+                  const SizedBox(height: 18),
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: Colors.black, minimumSize: const Size(170, 46), shape: const StadiumBorder()),
+                    onPressed: () {
+                      if (canPop) {
+                        Navigator.of(context).pop();
+                      } else {
+                        shellTab.value = 0;
+                      }
+                    },
+                    child: const Text('Start shopping'),
                   ),
                 ]),
               ),
+            )
+          : Column(children: [
+              Expanded(
+                child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 16), children: [
+                  _freeShipCard(s),
+                  ...lines.map((l) => _line(s, l)),
+                  _deliveryCard(s),
+                  _couponCard(s),
+                  _summaryCard(s),
+                ]),
+              ),
               Container(
-                padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  border: Border(top: BorderSide(color: line)),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  boxShadow: [BoxShadow(color: Color(0x14000000), blurRadius: 18, offset: Offset(0, -4))],
                 ),
                 child: SafeArea(
                   top: false,
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    PriceRow(label: 'Subtotal', value: '₹${s.subtotal}'),
-                    if (s.couponDiscount > 0) PriceRow(label: 'Coupon', value: '-₹${s.couponDiscount}', color: success),
-                    PriceRow(label: 'Delivery', value: s.shipping == 0 ? 'FREE' : '₹${s.shipping}', color: s.shipping == 0 ? success : null),
-                    if (s.shipping > 0)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('Add ₹${st.freeShipAbove - s.subtotal} more for free delivery', style: const TextStyle(color: muted, fontSize: 11)),
-                      ),
-                    const Divider(height: 18),
-                    PriceRow(label: 'Total', value: '₹${s.total}', bold: true),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () async {
-                          if (!await ensureLogin(context)) return;
-                          if (!context.mounted) return;
-                          s.endBuyNow();
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckoutScreen()));
-                        },
-                        style: FilledButton.styleFrom(minimumSize: const Size(0, 50), backgroundColor: Colors.black, shape: const StadiumBorder()),
-                        child: const Text('Checkout', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  child: Row(children: [
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                      const Text('Total', style: TextStyle(color: muted, fontSize: 12)),
+                      Text('₹${s.total}', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+                    ]),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: SizedBox(
+                        height: 52,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(backgroundColor: Colors.black, shape: const StadiumBorder()),
+                          onPressed: () async {
+                            if (!await ensureLogin(context)) return;
+                            if (!context.mounted) return;
+                            s.endBuyNow();
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckoutScreen()));
+                          },
+                          child: const Text('Checkout', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                        ),
                       ),
                     ),
                   ]),
@@ -259,7 +451,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
                       if (extra.isNotEmpty) Text(extra, style: const TextStyle(color: muted, fontSize: 11)),
                       const SizedBox(height: 4),
-                      Text('₹${p.price}  ·  Qty 1', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                      Text('₹${s.unitPrice(l)}  ·  Qty 1${l.subDays > 0 ? '  ·  Every ${l.subDays} days' : ''}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
                     ]),
                   ),
                 ]),
@@ -344,7 +536,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       'action': 'create_order',
                       'checkout_id': _checkoutRequestId ??= DateTime.now().microsecondsSinceEpoch.toString(),
                       'payment_method': online ? 'razorpay' : 'cod',
-                      'items': s.activeLines.map((l) => {'pid': l.pid, 'qty': l.qty, 'size': l.size, 'color': l.color}).toList(),
+                      'items': s.activeLines.map((l) => {'pid': l.pid, 'qty': l.qty, 'size': l.size, 'color': l.color, if (l.subDays > 0 && s.settings.subEnabled) 'sub_days': l.subDays}).toList(),
                       'coupon_code': s.appliedCoupon ?? '',
                       'name': name.text.trim(),
                       'phone': mobile.text.trim(),

@@ -407,7 +407,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         const Text('Items', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
         ...itemsList.map((it) {
-          final extra = [if ('${it['size'] ?? ''}'.isNotEmpty) 'Size ${it['size']}', if ('${it['color'] ?? ''}'.isNotEmpty) '${it['color']}'].join(' · ');
+          final extra = [if ('${it['size'] ?? ''}'.isNotEmpty) 'Size ${it['size']}', if ('${it['color'] ?? ''}'.isNotEmpty) '${it['color']}', if (((it['subDays'] ?? 0) as num) > 0) 'Subscription: every ${it['subDays']} days'].join(' · ');
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Row(children: [

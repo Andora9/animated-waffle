@@ -191,6 +191,7 @@ class Coupon {
     return d > amount ? amount : d;
   }
 
+  bool subtotalOk(int amount) => amount >= minOrder;
   String get label => percent ? '$value% OFF' : '₹$value OFF';
   Map<String, dynamic> toJson() => {
         'code': code,
@@ -235,13 +236,13 @@ class AppNotice {
 }
 
 class CartLine {
-  int pid, qty;
+  int pid, qty, subDays; // subDays > 0 => Subscribe & Save (deliver every N days)
   String size, color;
-  CartLine({required this.pid, this.size = '', this.color = '', this.qty = 1});
-  String get key => '$pid|$size|$color';
-  Map<String, dynamic> toJson() => {'pid': pid, 'size': size, 'color': color, 'qty': qty};
-  factory CartLine.fromJson(Map<String, dynamic> j) =>
-      CartLine(pid: _i(j['pid']), size: '${j['size'] ?? ''}', color: '${j['color'] ?? ''}', qty: _i(j['qty']));
+  CartLine({required this.pid, this.size = '', this.color = '', this.qty = 1, this.subDays = 0});
+  String get key => '$pid|$size|$color|$subDays';
+  Map<String, dynamic> toJson() => {'pid': pid, 'size': size, 'color': color, 'qty': qty, 'subDays': subDays};
+  factory CartLine.fromJson(Map<String, dynamic> j) => CartLine(
+      pid: _i(j['pid']), size: '${j['size'] ?? ''}', color: '${j['color'] ?? ''}', qty: _i(j['qty']), subDays: _i(j['subDays']));
 }
 
 class AdminUser {
@@ -258,8 +259,10 @@ class AdminUser {
 
 class StoreSettings {
   String appName, tagline, footerText, returnPolicy, supportPhone, whatsapp, logoUrl;
-  bool saleEnabled;
-  String saleTitle, saleOffer, saleNote, saleEndAt; // home sale banner (admin controlled)
+  bool saleEnabled, subEnabled;
+  String saleTitle, saleOffer, saleNote, saleEndAt, saleBgImage, saleBgColor; // home sale banner (admin controlled)
+  int subPct; // Subscribe & Save discount %
+  String subDays; // allowed delivery intervals, e.g. '15,30,60'
   int accent, shippingFee, freeShipAbove, etaDays, etaDaysMember, tier1, pct1, tier2, pct2;
   List<Map<String, String>> footerLinks;
 
@@ -273,6 +276,11 @@ class StoreSettings {
     this.whatsapp = '',
     this.logoUrl = '',
     this.saleEnabled = false,
+    this.subEnabled = false,
+    this.subPct = 15,
+    this.subDays = '15,30,60',
+    this.saleBgImage = '',
+    this.saleBgColor = '',
     this.saleTitle = 'Mega Sale is Live!',
     this.saleOffer = '40% OFF',
     this.saleNote = 'Limited time only. Shop before it’s gone!',
@@ -289,6 +297,9 @@ class StoreSettings {
     List<Map<String, String>>? footerLinks,
   }) : footerLinks = footerLinks ?? <Map<String, String>>[];
 
+  /// Allowed subscription intervals as ints
+  List<int> get subDayOptions => subDays.split(',').map((e) => int.tryParse(e.trim()) ?? 0).where((e) => e > 0).toList();
+
   Color get accentColor => accentPalette[accent % accentPalette.length].value;
 
   Map<String, dynamic> toJson() => {
@@ -300,6 +311,11 @@ class StoreSettings {
         'whatsapp': whatsapp,
         'logoUrl': logoUrl,
         'saleEnabled': saleEnabled,
+        'subEnabled': subEnabled,
+        'subPct': subPct,
+        'subDays': subDays,
+        'saleBgImage': saleBgImage,
+        'saleBgColor': saleBgColor,
         'saleTitle': saleTitle,
         'saleOffer': saleOffer,
         'saleNote': saleNote,
@@ -327,6 +343,11 @@ class StoreSettings {
       whatsapp: '${j['whatsapp'] ?? ''}',
       logoUrl: '${j['logoUrl'] ?? ''}',
       saleEnabled: j['saleEnabled'] == true,
+      subEnabled: j['subEnabled'] == true,
+      subPct: j['subPct'] == null ? d.subPct : _i(j['subPct']),
+      subDays: '${j['subDays'] ?? d.subDays}',
+      saleBgImage: '${j['saleBgImage'] ?? ''}',
+      saleBgColor: '${j['saleBgColor'] ?? ''}',
       saleTitle: '${j['saleTitle'] ?? d.saleTitle}',
       saleOffer: '${j['saleOffer'] ?? d.saleOffer}',
       saleNote: '${j['saleNote'] ?? d.saleNote}',

@@ -19,6 +19,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   int page = 0;
   String size = '';
   String color = '';
+  bool subscribe = false; // Subscribe & Save (only offered when admin enables it)
+  int subDays = 0;
 
   @override
   void initState() {
@@ -84,24 +86,23 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       );
 
   Widget _chips(List<String> items, String selected, void Function(String) onPick) {
-    final ac = accentOf(context);
     return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+      spacing: 8,
+      runSpacing: 8,
       children: items.map((x) {
         final on = x == selected;
         return GestureDetector(
           onTap: () => onPick(x),
-          child: Container(
-            constraints: const BoxConstraints(minWidth: 38),
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            constraints: const BoxConstraints(minWidth: 46, minHeight: 44),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: on ? const Color(0xFFFF6B35) : Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: on ? const Color(0xFFFF6B35) : line),
+              color: on ? const Color(0xFFFF7A3D) : const Color(0xFFF1F1F3),
+              borderRadius: BorderRadius.circular(11),
             ),
-            child: Text(x, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: on ? Colors.white : ink)),
+            child: Text(x, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: on ? Colors.white : ink)),
           ),
         );
       }).toList(),
@@ -128,9 +129,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     return true;
   }
 
+  int _chosenDays(StoreController s) {
+    if (!subscribe || !s.settings.subEnabled) return 0;
+    final opts = s.settings.subDayOptions;
+    if (opts.isEmpty) return 0;
+    return opts.contains(subDays) ? subDays : (opts.contains(30) ? 30 : opts.first);
+  }
+
   Future<void> _addToCart(StoreController s, Product p) async {
     if (!_pickedOptions(p)) return;
-    await s.addToCart(p.id, size: size, color: color);
+    await s.addToCart(p.id, size: size, color: color, subDays: _chosenDays(s));
     if (mounted) toast(context, 'Added to cart');
   }
 
@@ -138,7 +146,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   Future<void> _buyNow(StoreController s, Product p) async {
     if (!_pickedOptions(p)) return;
     if (!await ensureLogin(context)) return;
-    s.startBuyNow(p.id, size: size, color: color);
+    s.startBuyNow(p.id, size: size, color: color, subDays: _chosenDays(s));
     if (!mounted) return;
     await Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckoutScreen(buyNow: true)));
     s.endBuyNow();
@@ -192,6 +200,88 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     text.dispose();
   }
 
+  // ------------------------------------------------------------ purchase options
+  Widget _purchaseOptions(StoreController s, Product p) {
+    final st = s.settings;
+    final days = _chosenDays(s) == 0 ? (st.subDayOptions.contains(30) ? 30 : st.subDayOptions.first) : _chosenDays(s);
+    final subPrice = p.price * (100 - st.subPct) ~/ 100;
+    const orange = Color(0xFFE5532D);
+    Widget radio(bool on) => Icon(on ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: on ? orange : const Color(0xFFA1A1AA), size: 22);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Padding(padding: EdgeInsets.only(top: 22, bottom: 12), child: Text('Purchase options', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
+      GestureDetector(
+        onTap: () => setState(() => subscribe = false),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: !subscribe ? Colors.black : line, width: !subscribe ? 1.4 : 1)),
+          child: Row(children: [
+            radio(!subscribe),
+            const SizedBox(width: 10),
+            const Expanded(child: Text('One-time purchase', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15))),
+            Text('₹${p.price}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+          ]),
+        ),
+      ),
+      const SizedBox(height: 12),
+      GestureDetector(
+        onTap: () => setState(() { subscribe = true; subDays = days; }),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: subscribe ? const Color(0xFFFFF5F2) : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: subscribe ? const Color(0xFFFF7A3D) : line, width: subscribe ? 1.4 : 1),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              radio(subscribe),
+              const SizedBox(width: 10),
+              const Text('Subscribe & Save', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: const Color(0xFFFF5A36), borderRadius: BorderRadius.circular(8)),
+                child: Text('SAVE ${st.subPct}%', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
+              ),
+            ]),
+            const SizedBox(height: 10),
+            Divider(height: 1, color: orange.withOpacity(.18)),
+            const SizedBox(height: 10),
+            Row(children: [
+              Text('₹$subPrice', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: orange)),
+              const SizedBox(width: 14),
+              const Text('Deliver every', style: TextStyle(fontSize: 13)),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: line)),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: st.subDayOptions.contains(days) ? days : st.subDayOptions.first,
+                    isDense: true,
+                    style: const TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w600),
+                    items: st.subDayOptions.map((d) => DropdownMenuItem<int>(value: d, child: Text('$d days'))).toList(),
+                    onChanged: (v) => setState(() { subscribe = true; subDays = v ?? days; }),
+                  ),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 10),
+            Text('Save ${st.subPct}%  ·  Cancel anytime via support', style: const TextStyle(fontSize: 11.5, color: orange, fontWeight: FontWeight.w700)),
+          ]),
+        ),
+      ),
+      const Padding(
+        padding: EdgeInsets.only(top: 10, left: 4),
+        child: Row(children: [
+          Icon(Icons.lock_outline_rounded, size: 15, color: muted),
+          SizedBox(width: 6),
+          Text('Secure, flexible, and hassle-free', style: TextStyle(fontSize: 12, color: muted)),
+        ]),
+      ),
+    ]);
+  }
+
   // ------------------------------------------------------------ build
   @override
   Widget build(BuildContext context) {
@@ -200,67 +290,77 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     final fav = s.favourites.contains(p.id);
     final rating = s.ratingOf(p.id);
     final revs = s.reviewsOf(p.id);
-    final ac = accentOf(context);
     final imgCount = p.images.isEmpty ? 1 : p.images.length;
     final days = s.etaDays;
     final inStock = p.stock > 0;
+    final subOn = s.settings.subEnabled && s.settings.subDayOptions.isNotEmpty;
+    final chosen = _chosenDays(s);
+    final shownPrice = chosen > 0 ? p.price * (100 - s.settings.subPct) ~/ 100 : p.price;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: const BrandLogo(size: 30), centerTitle: true,
         actions: [
           IconButton(
-            onPressed: () => s.toggleFavourite(p.id),
-            icon: Icon(fav ? Icons.favorite : Icons.favorite_border, color: fav ? const Color(0xFFE11D48) : ink),
-          ),
-          IconButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen())),
-            icon: Badge(isLabelVisible: s.itemCount > 0, label: Text('${s.itemCount}'), child: const Icon(Icons.shopping_cart_outlined)),
+            icon: Badge(isLabelVisible: s.itemCount > 0, label: Text('${s.itemCount}'), child: const Icon(Icons.shopping_bag_outlined)),
           ),
           const SizedBox(width: 4),
         ],
       ),
       body: Column(children: [
         Expanded(
-          child: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 28), children: [
-            // ---- gallery
-            Container(
-              height: 380,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(color: const Color(0xFFF9F9F9), borderRadius: BorderRadius.circular(20)),
-              child: Stack(children: [
-                PageView.builder(
-                  controller: pager,
-                  itemCount: imgCount,
-                  onPageChanged: (v) => setState(() => page = v),
-                  itemBuilder: (c, i) => NetImage(
-                    url: p.images.isEmpty ? '' : p.images[i],
-                    fit: BoxFit.contain,
-                    fallback: iconFallback(s.iconKeyFor(p.category), size: 90),
-                  ),
-                ),
-                if (p.discount > 0)
-                  Positioned(
-                    left: 12,
-                    top: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(color: ac, borderRadius: BorderRadius.circular(20)),
-                      child: Text('${p.discount}% OFF', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
+          child: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
+            // ---- gallery (image fills the rounded frame)
+            AspectRatio(
+              aspectRatio: 1,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Stack(fit: StackFit.expand, children: [
+                  PageView.builder(
+                    controller: pager,
+                    itemCount: imgCount,
+                    onPageChanged: (v) => setState(() => page = v),
+                    itemBuilder: (c, i) => NetImage(
+                      url: p.images.isEmpty ? '' : p.images[i],
+                      fit: BoxFit.cover,
+                      fallback: Container(color: const Color(0xFFF5F5F5), child: iconFallback(s.iconKeyFor(p.category), size: 90)),
                     ),
                   ),
-                if (imgCount > 1)
+                  if (p.discount > 0)
+                    Positioned(
+                      left: 12, top: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
+                        child: Text('${p.discount}% OFF', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
+                      ),
+                    ),
                   Positioned(
-                    left: 0, right: 0, bottom: 13,
-                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(imgCount, (i) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: page == i ? 18 : 6, height: 6,
-                      decoration: BoxDecoration(color: page == i ? const Color(0xFF263321) : const Color(0xFFB8BDB4), borderRadius: BorderRadius.circular(8)),
-                    ))),
+                    right: 12, top: 12,
+                    child: Material(
+                      color: Colors.white, shape: const CircleBorder(), elevation: 2, shadowColor: const Color(0x33000000),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () => s.toggleFavourite(p.id),
+                        child: Padding(padding: const EdgeInsets.all(9), child: Icon(fav ? Icons.favorite : Icons.favorite_border, size: 20, color: fav ? const Color(0xFFE11D48) : ink)),
+                      ),
+                    ),
                   ),
-              ]),
+                  if (imgCount > 1)
+                    Positioned(
+                      left: 0, right: 0, bottom: 13,
+                      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(imgCount, (i) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: page == i ? 18 : 6, height: 6,
+                        decoration: BoxDecoration(color: page == i ? Colors.black : Colors.white70, borderRadius: BorderRadius.circular(8)),
+                      ))),
+                    ),
+                ]),
+              ),
             ),
             if (imgCount > 1)
               Padding(
@@ -277,8 +377,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         width: 58,
                         clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: i == page ? ac : line, width: i == page ? 1.8 : 1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: i == page ? Colors.black : Colors.transparent, width: 1.6),
                         ),
                         child: NetImage(url: p.images[i], fallback: iconFallback(s.iconKeyFor(p.category), size: 20)),
                       ),
@@ -288,90 +388,50 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               ),
 
             // ---- title + price
-            const SizedBox(height: 20),
-            Text(p.brand.toUpperCase(), style: const TextStyle(color: muted, letterSpacing: 1.6, fontSize: 11, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
-            Text(p.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, height: 1.2)),
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
             Row(children: [
+              Expanded(child: Text(p.brand.toUpperCase(), style: const TextStyle(color: muted, letterSpacing: 1.6, fontSize: 11, fontWeight: FontWeight.w800))),
               if (rating > 0) ...[
                 const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF59E0B)),
                 const SizedBox(width: 3),
                 Text(rating.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-                Text('  ·  ${revs.length} ${revs.length == 1 ? 'review' : 'reviews'}', style: const TextStyle(color: muted, fontSize: 12)),
+                Text(' (${revs.length})', style: const TextStyle(color: muted, fontSize: 12)),
               ] else
                 const Text('No reviews yet', style: TextStyle(color: muted, fontSize: 12)),
             ]),
-            const SizedBox(height: 14),
+            const SizedBox(height: 6),
+            Text(p.name, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, height: 1.15, letterSpacing: -.4)),
+            const SizedBox(height: 12),
             Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('₹${p.price}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, height: 1)),
-              if (p.mrp > p.price) ...[
+              Text('₹$shownPrice', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, height: 1)),
+              if (p.mrp > shownPrice) ...[
                 const SizedBox(width: 10),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: Text('₹${p.mrp}', style: const TextStyle(color: muted, fontSize: 14, decoration: TextDecoration.lineThrough)),
-                ),
+                Padding(padding: const EdgeInsets.only(bottom: 2), child: Text('₹${p.mrp}', style: const TextStyle(color: muted, fontSize: 14, decoration: TextDecoration.lineThrough))),
                 const SizedBox(width: 10),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: Text('${p.discount}% off', style: const TextStyle(color: success, fontSize: 14, fontWeight: FontWeight.w900)),
-                ),
+                Padding(padding: const EdgeInsets.only(bottom: 2), child: Text('${((p.mrp - shownPrice) * 100 / p.mrp).round()}% off', style: const TextStyle(color: success, fontSize: 14, fontWeight: FontWeight.w900))),
               ],
             ]),
-            const SizedBox(height: 6),
-            Text(
-              !inStock ? 'Out of stock' : (p.stock <= 5 ? 'Only ${p.stock} left in stock' : 'In stock'),
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: !inStock ? danger : (p.stock <= 5 ? const Color(0xFFD97706) : success)),
-            ),
+            const SizedBox(height: 8),
+            Row(children: [
+              Icon(!inStock ? Icons.cancel_outlined : Icons.check_circle_outline, size: 16, color: !inStock ? danger : (p.stock <= 5 ? const Color(0xFFD97706) : success)),
+              const SizedBox(width: 6),
+              Text(
+                !inStock ? 'Out of stock' : (p.stock <= 5 ? 'Only ${p.stock} left' : 'In stock'),
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: !inStock ? danger : (p.stock <= 5 ? const Color(0xFFD97706) : success)),
+              ),
+              if (inStock) Text('  ·  Delivery by ${dateAfter(days)}', style: const TextStyle(fontSize: 12.5, color: muted)),
+            ]),
 
             // ---- options
             if (p.sizes.isNotEmpty) ...[_label('Size', size), _chips(p.sizes, size, (v) => setState(() => size = v))],
             if (p.colors.isNotEmpty) ...[_label('Colour', color), _chips(p.colors, color, (v) => setState(() => color = v))],
 
-            // ---- delivery + membership
-            _accordion(
-              'Free Delivery and Returns',
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  const Icon(Icons.location_on_outlined, size: 19),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      s.pincode.isEmpty ? 'Add your PIN code to check delivery' : 'Deliver to ${s.city.isEmpty ? '' : '${s.city} - '}${s.pincode}',
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                    ),
-                  ),
-                  TextButton(onPressed: () => showPinSheet(context), child: Text(s.pincode.isEmpty ? 'Add' : 'Change')),
-                ]),
-                const SizedBox(height: 4),
-                Row(children: [
-                  Icon(s.isMember ? Icons.bolt_rounded : Icons.local_shipping_outlined, size: 19),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      s.isMember ? 'Express delivery by ${dateAfter(days)}' : 'Delivery by ${dateAfter(days)}',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                  ),
-                  Text(
-                    s.isMember ? 'FREE' : (s.normalShipping == 0 ? 'FREE' : '₹${s.settings.shippingFee}'),
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: (s.isMember || s.normalShipping == 0) ? success : ink),
-                  ),
-                ]),
-                const SizedBox(height: 10),
-                const Row(children: [
-                  Icon(Icons.payments_outlined, size: 19),
-                  SizedBox(width: 10),
-                  Text('Cash on Delivery & online payment', style: TextStyle(fontSize: 13)),
-                ]),
-                const SizedBox(height: 16),
-
-              ]),
-            ),
+            // ---- Subscribe & Save (admin controlled)
+            if (subOn) _purchaseOptions(s, p),
 
             // ---- trust row
             Padding(
-              padding: const EdgeInsets.only(top: 22),
+              padding: const EdgeInsets.only(top: 24, bottom: 4),
               child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 _perk(Icons.autorenew_rounded, '7-day easy\nreturns'),
                 _perk(Icons.verified_user_outlined, 'Secure\npayments'),
@@ -379,62 +439,72 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               ]),
             ),
 
-            // ---- details
-            _accordion('Description', Text(p.description.isEmpty ? 'No details added yet.' : p.description, style: const TextStyle(color: Color(0xFF4B5563), height: 1.6, fontSize: 13))),
-
-            _section(
-              'Specifications',
-              Container(
-                decoration: BoxDecoration(border: Border.all(color: line), borderRadius: BorderRadius.circular(14)),
-                clipBehavior: Clip.antiAlias,
-                child: Column(children: [
-                  _specRow('SKU', p.sku.isEmpty ? '-' : p.sku, false),
-                  _specRow('Category', p.category, true),
-                  ...List.generate(p.specs.length, (i) {
-                    final e = p.specs.entries.elementAt(i);
-                    return _specRow(e.key, e.value, true);
-                  }),
+            // ---- accordions
+            const SizedBox(height: 8),
+            _accordion('Description', Text(p.description.isEmpty ? 'No details added yet.' : p.description, style: const TextStyle(color: Color(0xFF4B5563), height: 1.6, fontSize: 13)), initiallyExpanded: true),
+            _accordion(
+              'Free Delivery and Returns',
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  const Icon(Icons.location_on_outlined, size: 19),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(s.pincode.isEmpty ? 'Add your PIN code to check delivery' : 'Deliver to ${s.city.isEmpty ? '' : '${s.city} - '}${s.pincode}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
+                  TextButton(onPressed: () => showPinSheet(context), child: Text(s.pincode.isEmpty ? 'Add' : 'Change')),
                 ]),
-              ),
+                Row(children: [
+                  Icon(s.isMember ? Icons.bolt_rounded : Icons.local_shipping_outlined, size: 19),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(s.isMember ? 'Express delivery by ${dateAfter(days)}' : 'Delivery by ${dateAfter(days)}', style: const TextStyle(fontSize: 13))),
+                  Text(s.isMember ? 'FREE' : (s.normalShipping == 0 ? 'FREE' : '₹${s.settings.shippingFee}'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: (s.isMember || s.normalShipping == 0) ? success : ink)),
+                ]),
+                const SizedBox(height: 10),
+                const Row(children: [Icon(Icons.payments_outlined, size: 19), SizedBox(width: 10), Text('Cash on Delivery & online payment', style: TextStyle(fontSize: 13))]),
+                const SizedBox(height: 12),
+                Text(s.settings.returnPolicy, style: const TextStyle(color: Color(0xFF4B5563), fontSize: 12.5, height: 1.55)),
+              ]),
             ),
-
-            _section('Return policy', Text(s.settings.returnPolicy, style: const TextStyle(color: Color(0xFF4B5563), fontSize: 13, height: 1.55))),
-
+            _accordion(
+              'Specifications',
+              Column(children: [
+                _specRow('SKU', p.sku.isEmpty ? '-' : p.sku, false),
+                _specRow('Category', p.category, true),
+                ...List.generate(p.specs.length, (i) {
+                  final e = p.specs.entries.elementAt(i);
+                  return _specRow(e.key, e.value, true);
+                }),
+              ]),
+            ),
             if (p.brand.isNotEmpty)
-              _section(
-                'About ${p.brand}',
-                Text(p.aboutBrand.isEmpty ? 'Brand information will be added soon.' : p.aboutBrand, style: const TextStyle(color: Color(0xFF4B5563), height: 1.6, fontSize: 13)),
-              ),
-
-            // ---- reviews
-            _section('Ratings & reviews', _reviews(s, p, rating, revs)),
+              _accordion('About ${p.brand}', Text(p.aboutBrand.isEmpty ? 'Brand information will be added soon.' : p.aboutBrand, style: const TextStyle(color: Color(0xFF4B5563), height: 1.6, fontSize: 13))),
+            _accordion('See Reviews (${revs.length})', _reviews(s, p, rating, revs), initiallyExpanded: revs.isNotEmpty),
           ]),
         ),
 
         // ---- bottom bar
         Container(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-          decoration: BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: line))),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            boxShadow: [BoxShadow(color: Color(0x12000000), blurRadius: 16, offset: Offset(0, -4))],
+          ),
           child: SafeArea(
             top: false,
             child: Row(children: [
-              Container(width: 44, height: 44, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: line)),
-                child: IconButton(padding: EdgeInsets.zero, onPressed: () => s.toggleFavourite(p.id),
-                  icon: Icon(fav ? Icons.favorite : Icons.favorite_border, color: fav ? const Color(0xFFFF6B35) : ink))),
-              const SizedBox(width: 8),
               Expanded(
+                flex: 5,
                 child: FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: Colors.black, minimumSize: const Size(0, 44), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: FilledButton.styleFrom(backgroundColor: Colors.black, minimumSize: const Size(0, 50), shape: const StadiumBorder()),
                   onPressed: inStock ? () => _addToCart(s, p) : null,
-                  child: const Text('Add to cart'),
+                  child: const Text('Add to cart', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
+                flex: 5,
                 child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(foregroundColor: Colors.black, side: const BorderSide(color: Colors.black), minimumSize: const Size(0, 44), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: OutlinedButton.styleFrom(foregroundColor: Colors.black, side: const BorderSide(color: Colors.black, width: 1.2), minimumSize: const Size(0, 50), shape: const StadiumBorder()),
                   onPressed: inStock ? () => _buyNow(s, p) : null,
-                  child: Text(inStock ? 'Buy it now' : 'Out of stock'),
+                  child: Text(inStock ? 'Buy it now' : 'Out of stock', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                 ),
               ),
             ]),

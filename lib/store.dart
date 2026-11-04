@@ -707,8 +707,23 @@ class StoreController extends ChangeNotifier {
   }
 
   int get itemCount => cartLines.fold(0, (a, l) => a + l.qty);
-  int get subtotal =>
-      activeLines.fold(0, (a, l) => a + productById(l.pid)!.price * l.qty);
+  /// Per-unit price of a cart line (Subscribe & Save discount applied when subDays > 0).
+  /// Server (razorpay-checkout) uses the same floor() rounding.
+  int unitPrice(CartLine l) {
+    final p = productById(l.pid);
+    if (p == null) return 0;
+    if (l.subDays > 0 && settings.subEnabled) return p.price * (100 - settings.subPct) ~/ 100;
+    return p.price;
+  }
+
+  int get subtotal => activeLines.fold(0, (a, l) => a + unitPrice(l) * l.qty);
+
+  /// MRP minus selling price across active lines (for "You save" row)
+  int get savings => activeLines.fold(0, (a, l) {
+        final p = productById(l.pid)!;
+        final base = p.mrp > p.price ? p.mrp : p.price;
+        return a + (base - unitPrice(l)) * l.qty;
+      });
 
   // Membership ab discount nahi, free + fast delivery deti hai
   int get memberPct => 0;
@@ -745,19 +760,26 @@ class StoreController extends ChangeNotifier {
       subtotal - couponDiscount + shipping + platformFeeAmount + gstAmount;
   int get etaDays => isMember ? settings.etaDaysMember : settings.etaDays;
 
-  Future<void> addToCart(int pid, {String size = '', String color = ''}) async {
-    final k = CartLine(pid: pid, size: size, color: color).key;
+  Future<void> addToCart(int pid, {String size = '', String color = '', int subDays = 0}) async {
+    final k = CartLine(pid: pid, size: size, color: color, subDays: subDays).key;
     final i = cart.indexWhere((l) => l.key == k);
     if (i >= 0) {
       cart[i].qty += 1;
     } else {
-      cart.add(CartLine(pid: pid, size: size, color: color));
+      cart.add(CartLine(pid: pid, size: size, color: color, subDays: subDays));
     }
     await commit();
   }
 
-  void startBuyNow(int pid, {String size = '', String color = ''}) {
-    buyNowLine = CartLine(pid: pid, size: size, color: color);
+  /// Undo ke liye: line wapas daalo
+  Future<void> restoreLine(CartLine l) async {
+    if (cart.any((x) => x.key == l.key)) return;
+    cart.add(l);
+    await commit();
+  }
+
+  void startBuyNow(int pid, {String size = '', String color = '', int subDays = 0}) {
+    buyNowLine = CartLine(pid: pid, size: size, color: color, subDays: subDays);
     notifyListeners();
   }
 
@@ -904,7 +926,8 @@ class StoreController extends ChangeNotifier {
         'size': l.size,
         'color': l.color,
         'qty': l.qty,
-        'price': p.price
+        'price': unitPrice(l),
+        'subDays': l.subDays
       };
     }).toList();
     final order = <String, dynamic>{

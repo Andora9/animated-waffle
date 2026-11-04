@@ -839,9 +839,10 @@ class AdminSettingsScreen extends StatefulWidget {
 }
 
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
-  late final TextEditingController appName, tagline, logoUrl, ship, free, eta, etaM, t1, p1, t2, p2, supp, wa, ret, footer, links, saleTitle, saleOffer, saleNote, saleHours;
+  late final TextEditingController appName, tagline, logoUrl, ship, free, eta, etaM, t1, p1, t2, p2, supp, wa, ret, footer, links, saleTitle, saleOffer, saleNote, saleHours, saleBgImage, saleBgColor, subPct, subDaysC;
   int accent = 0;
   bool saleOn = false;
+  bool subOn = false;
 
   @override
   void initState() {
@@ -869,11 +870,16 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     saleOffer = TextEditingController(text: st.saleOffer);
     saleNote = TextEditingController(text: st.saleNote);
     saleHours = TextEditingController();
+    saleBgImage = TextEditingController(text: st.saleBgImage);
+    saleBgColor = TextEditingController(text: st.saleBgColor);
+    subOn = st.subEnabled;
+    subPct = TextEditingController(text: '${st.subPct}');
+    subDaysC = TextEditingController(text: st.subDays);
   }
 
   @override
   void dispose() {
-    for (final c in [appName, tagline, logoUrl, ship, free, eta, etaM, t1, p1, t2, p2, supp, wa, ret, footer, links, saleTitle, saleOffer, saleNote, saleHours]) {
+    for (final c in [appName, tagline, logoUrl, ship, free, eta, etaM, t1, p1, t2, p2, supp, wa, ret, footer, links, saleTitle, saleOffer, saleNote, saleHours, saleBgImage, saleBgColor, subPct, subDaysC]) {
       c.dispose();
     }
     super.dispose();
@@ -902,7 +908,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       ..saleEnabled = saleOn
       ..saleTitle = saleTitle.text.trim().isEmpty ? st.saleTitle : saleTitle.text.trim()
       ..saleOffer = saleOffer.text.trim().isEmpty ? st.saleOffer : saleOffer.text.trim()
-      ..saleNote = saleNote.text.trim();
+      ..saleNote = saleNote.text.trim()
+      ..saleBgImage = saleBgImage.text.trim()
+      ..saleBgColor = saleBgColor.text.trim().replaceAll('#', '')
+      ..subEnabled = subOn
+      ..subPct = _n(subPct, st.subPct).clamp(1, 90).toInt()
+      ..subDays = subDaysC.text.trim().isEmpty ? st.subDays : subDaysC.text.trim();
     final hrs = int.tryParse(saleHours.text.trim());
     if (hrs != null && hrs > 0) {
       st.saleEndAt = DateTime.now().add(Duration(hours: hrs)).toUtc().toIso8601String();
@@ -975,7 +986,40 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         _tf(saleTitle, 'Sale title', hint: 'Mega Sale is Live!'),
         _tf(saleOffer, 'Offer text', hint: '40% OFF'),
         _tf(saleNote, 'Small note', hint: 'Limited time only'),
+        _tf(saleBgImage, 'Background image URL (optional)', type: TextInputType.url, hint: 'https://... (text white ho jayega)'),
+        const Text('Background colour (image na ho to)', style: TextStyle(color: muted, fontSize: 12, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Wrap(spacing: 10, runSpacing: 10, children: [
+          for (final hex in ['', 'A4D65E', 'FF7A3D', '111111', '2563EB', 'E11D48', '7C3AED', 'F59E0B'])
+            GestureDetector(
+              onTap: () => setState(() => saleBgColor.text = hex),
+              child: Container(
+                width: 38, height: 38, alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: hex.isEmpty ? Colors.white : Color(int.parse('FF$hex', radix: 16)),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: saleBgColor.text.replaceAll('#', '').toUpperCase() == hex ? ink : line, width: saleBgColor.text.replaceAll('#', '').toUpperCase() == hex ? 2.5 : 1),
+                ),
+                child: hex.isEmpty ? const Text('Auto', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800)) : null,
+              ),
+            ),
+        ]),
+        const SizedBox(height: 10),
+        _tf(saleBgColor, 'Or type colour code', hint: 'A4D65E'),
         _tf(saleHours, 'Sale ends in (hours from now)', type: TextInputType.number, hint: 'Khali = countdown unchanged / no countdown'),
+        _h('Subscribe & Save (product page)'),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: subOn,
+          onChanged: (v) => setState(() => subOn = v),
+          title: const Text('Enable Subscribe & Save', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+          subtitle: const Text('On = product page par Purchase options dikhenge. Off = bilkul nahi.', style: TextStyle(fontSize: 11, color: muted)),
+        ),
+        Row(children: [
+          Expanded(child: _tf(subPct, 'Discount %', type: TextInputType.number)),
+          const SizedBox(width: 10),
+          Expanded(flex: 2, child: _tf(subDaysC, 'Delivery every (days)', hint: '15,30,60')),
+        ]),
         _h('Support'),
         _tf(supp, 'Support phone number', type: TextInputType.phone),
         _tf(wa, 'WhatsApp number (optional)', type: TextInputType.phone),
