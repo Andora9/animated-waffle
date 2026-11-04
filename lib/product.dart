@@ -57,38 +57,34 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         ]),
       );
 
-  Widget _accordion(String title, Widget child, {bool initiallyExpanded = false}) => Container(
-        margin: const EdgeInsets.only(top: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: line),
-        ),
-        child: Theme(
+  Widget _accordion(String title, Widget child, {bool initiallyExpanded = false}) => Column(children: [
+        Divider(height: 1, color: Colors.grey.shade200),
+        Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
             initiallyExpanded: initiallyExpanded,
-            tilePadding: const EdgeInsets.symmetric(horizontal: 14),
-            childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 15),
-            title: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: ink)),
-            trailing: const Icon(Icons.add_rounded, size: 19),
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: const EdgeInsets.only(bottom: 16),
+            expandedCrossAxisAlignment: CrossAxisAlignment.start,
+            title: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: ink)),
+            trailing: const Icon(Icons.keyboard_arrow_down_rounded, size: 24, color: ink),
             children: [child],
           ),
         ),
-      );
+      ]);
 
   Widget _label(String t, String chosen) => Padding(
-        padding: const EdgeInsets.only(top: 20, bottom: 10),
+        padding: const EdgeInsets.only(top: 22, bottom: 12),
         child: Row(children: [
-          Text(t, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
-          if (chosen.isNotEmpty) Text('  ·  $chosen', style: const TextStyle(fontSize: 13, color: muted)),
+          Text('$t:', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+          if (chosen.isNotEmpty) Text('  $chosen', style: const TextStyle(fontSize: 14, color: muted)),
         ]),
       );
 
   Widget _chips(List<String> items, String selected, void Function(String) onPick) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: 10,
+      runSpacing: 10,
       children: items.map((x) {
         final on = x == selected;
         return GestureDetector(
@@ -96,13 +92,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             constraints: const BoxConstraints(minWidth: 46, minHeight: 44),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: on ? const Color(0xFFFF7A3D) : const Color(0xFFF1F1F3),
-              borderRadius: BorderRadius.circular(11),
+              color: on ? const Color(0xFFFF7A3D) : const Color(0xFFF2F2F4),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Text(x, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: on ? Colors.white : ink)),
+            child: Center(
+              widthFactor: 1,
+              heightFactor: 1,
+              child: Text(x, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: on ? Colors.white : ink)),
+            ),
           ),
         );
       }).toList(),
@@ -301,7 +300,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: const BrandLogo(size: 30), centerTitle: true,
         actions: [
           IconButton(
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen())),
@@ -317,7 +315,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             AspectRatio(
               aspectRatio: 1,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(28),
                 child: Stack(fit: StackFit.expand, children: [
                   PageView.builder(
                     controller: pager,
@@ -390,34 +388,36 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             // ---- title + price
             const SizedBox(height: 18),
             Row(children: [
-              Expanded(child: Text(p.brand.toUpperCase(), style: const TextStyle(color: muted, letterSpacing: 1.6, fontSize: 11, fontWeight: FontWeight.w800))),
+              Expanded(child: Text(p.category.isNotEmpty ? p.category : p.brand, style: const TextStyle(color: muted, fontSize: 12.5))),
               if (rating > 0) ...[
-                const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF59E0B)),
+                const Icon(Icons.star_rounded, size: 16, color: Color(0xFFFF7A3D)),
                 const SizedBox(width: 3),
-                Text(rating.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-                Text(' (${revs.length})', style: const TextStyle(color: muted, fontSize: 12)),
+                Text('(${rating.toStringAsFixed(1)})', style: const TextStyle(color: muted, fontSize: 12.5)),
               ] else
                 const Text('No reviews yet', style: TextStyle(color: muted, fontSize: 12)),
             ]),
             const SizedBox(height: 6),
-            Text(p.name, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, height: 1.15, letterSpacing: -.4)),
-            const SizedBox(height: 12),
-            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('₹$shownPrice', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, height: 1)),
-              if (p.mrp > shownPrice) ...[
-                const SizedBox(width: 10),
-                Padding(padding: const EdgeInsets.only(bottom: 2), child: Text('₹${p.mrp}', style: const TextStyle(color: muted, fontSize: 14, decoration: TextDecoration.lineThrough))),
-                const SizedBox(width: 10),
-                Padding(padding: const EdgeInsets.only(bottom: 2), child: Text('${((p.mrp - shownPrice) * 100 / p.mrp).round()}% off', style: const TextStyle(color: success, fontSize: 14, fontWeight: FontWeight.w900))),
-              ],
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(child: Text(p.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1.2))),
+              const SizedBox(width: 12),
+              Text('₹$shownPrice', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
             ]),
+            if (p.mrp > shownPrice)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  Text('₹${p.mrp}', style: const TextStyle(color: muted, fontSize: 12.5, decoration: TextDecoration.lineThrough)),
+                  const SizedBox(width: 8),
+                  Text('${((p.mrp - shownPrice) * 100 / p.mrp).round()}% off', style: const TextStyle(color: success, fontSize: 12.5, fontWeight: FontWeight.w800)),
+                ]),
+              ),
             const SizedBox(height: 8),
             Row(children: [
-              Icon(!inStock ? Icons.cancel_outlined : Icons.check_circle_outline, size: 16, color: !inStock ? danger : (p.stock <= 5 ? const Color(0xFFD97706) : success)),
+              Icon(!inStock ? Icons.cancel_outlined : Icons.check_circle_outline, size: 15, color: !inStock ? danger : (p.stock <= 5 ? const Color(0xFFD97706) : success)),
               const SizedBox(width: 6),
               Text(
                 !inStock ? 'Out of stock' : (p.stock <= 5 ? 'Only ${p.stock} left' : 'In stock'),
-                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: !inStock ? danger : (p.stock <= 5 ? const Color(0xFFD97706) : success)),
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: !inStock ? danger : (p.stock <= 5 ? const Color(0xFFD97706) : success)),
               ),
               if (inStock) Text('  ·  Delivery by ${dateAfter(days)}', style: const TextStyle(fontSize: 12.5, color: muted)),
             ]),
@@ -490,12 +490,21 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           child: SafeArea(
             top: false,
             child: Row(children: [
+              GestureDetector(
+                onTap: () => s.toggleFavourite(p.id),
+                child: Container(
+                  width: 50, height: 50,
+                  decoration: BoxDecoration(color: const Color(0xFFF2F2F4), borderRadius: BorderRadius.circular(25)),
+                  child: Icon(fav ? Icons.favorite : Icons.favorite_border, size: 22, color: fav ? const Color(0xFFE11D48) : ink),
+                ),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 flex: 5,
                 child: FilledButton(
                   style: FilledButton.styleFrom(backgroundColor: Colors.black, minimumSize: const Size(0, 50), shape: const StadiumBorder()),
                   onPressed: inStock ? () => _addToCart(s, p) : null,
-                  child: const Text('Add to cart', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  child: const FittedBox(child: Text('Add to cart', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold))),
                 ),
               ),
               const SizedBox(width: 10),
@@ -504,7 +513,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(foregroundColor: Colors.black, side: const BorderSide(color: Colors.black, width: 1.2), minimumSize: const Size(0, 50), shape: const StadiumBorder()),
                   onPressed: inStock ? () => _buyNow(s, p) : null,
-                  child: Text(inStock ? 'Buy it now' : 'Out of stock', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  child: FittedBox(child: Text(inStock ? 'Buy it now' : 'Out of stock', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold))),
                 ),
               ),
             ]),
