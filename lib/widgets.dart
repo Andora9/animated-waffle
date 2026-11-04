@@ -57,7 +57,7 @@ class ProductThumb extends StatelessWidget {
   @override Widget build(BuildContext context) {
     final s = StoreScope.of(context);
     return Container(width: 72, height: 78, clipBehavior: Clip.antiAlias, decoration: softBox(product.id, radius: 14),
-      child: NetImage(url: product.images.isEmpty ? '' : product.images.first, fallback: iconFallback(s.iconKeyFor(product.category), size: 30)));
+      child: NetImage(url: product.images.isEmpty ? '' : product.images.first, fit: BoxFit.contain, fallback: iconFallback(s.iconKeyFor(product.category), size: 30)));
   }
 }
 class SectionHeading extends StatelessWidget {
@@ -125,7 +125,11 @@ void openProduct(BuildContext context, Product p) =>
 class ProductCard extends StatelessWidget {
   final Product product;
   final int index;
-  const ProductCard({super.key, required this.product, this.index = 0});
+  /// Horizontal is intended for full-width shopping-feed cards.
+  /// Vertical is intended for compact two-column product cards.
+  final bool horizontal;
+
+  const ProductCard({super.key, required this.product, this.index = 0, this.horizontal = false});
 
   @override
   Widget build(BuildContext context) {
@@ -143,163 +147,146 @@ class ProductCard extends StatelessWidget {
         onTap: () => openProduct(context, p),
         borderRadius: BorderRadius.circular(13),
         child: Container(
-          height: 204,
+          height: horizontal ? 224 : 274,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(13),
             border: Border.all(color: const Color(0xFFE9E9E6)),
-            boxShadow: const [
-              BoxShadow(color: Color(0x09000000), blurRadius: 8, offset: Offset(0, 2)),
-            ],
+            boxShadow: const [BoxShadow(color: Color(0x09000000), blurRadius: 8, offset: Offset(0, 2))],
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Compact image panel, similar to the supplied shopping-list reference.
-              Expanded(
-                flex: 40,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Container(
-                      color: const Color(0xFFF4F4F2),
-                      padding: const EdgeInsets.all(10),
-                      child: hasImg
-                          ? NetImage(
-                              url: p.images.first,
-                              fit: BoxFit.contain,
-                              fallback: iconFallback(store.iconKeyFor(p.category), size: 42),
-                            )
-                          : iconFallback(store.iconKeyFor(p.category), size: 42),
-                    ),
-                    if (p.discount > 0)
-                      Positioned(
-                        top: 8,
-                        left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD4E684),
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                          child: Text(
-                            '${p.discount}% OFF',
-                            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF242424)),
-                          ),
-                        ),
-                      ),
-                    Positioned(
-                      bottom: 8,
-                      right: 8,
-                      child: Material(
-                        color: Colors.white,
-                        shape: const CircleBorder(),
-                        elevation: 2,
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () => store.toggleFavourite(p.id),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Icon(
-                              fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                              size: 19,
-                              color: fav ? const Color(0xFFE35D58) : const Color(0xFF242424),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (out)
-                      Container(
-                        color: const Color(0x99FFFFFF),
-                        alignment: Alignment.center,
-                        child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                      ),
-                  ],
-                ),
-              ),
-              Expanded(
-                flex: 60,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 11, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        p.brand.isNotEmpty ? p.brand.toUpperCase() : (p.category.isNotEmpty ? p.category.toUpperCase() : 'FEATURED'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 9, letterSpacing: .7, color: Color(0xFF777777), fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 5),
-                      Expanded(
-                        child: Text(
-                          p.name,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 14, height: 1.22, fontWeight: FontWeight.w600, color: Color(0xFF242424)),
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF07822)),
-                          const SizedBox(width: 2),
-                          Text(rating > 0 ? rating.toStringAsFixed(1) : 'New', style: const TextStyle(fontSize: 11, color: Color(0xFF555555), fontWeight: FontWeight.w700)),
-                          const SizedBox(width: 4),
-                          const Expanded(child: Text('Customer rating', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 9, color: Color(0xFF888888)))),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text('₹${p.price}', style: const TextStyle(fontSize: 19, height: 1, fontWeight: FontWeight.w900, color: Color(0xFF242424))),
-                          if (p.mrp > p.price) ...[
-                            const SizedBox(width: 6),
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 1),
-                              child: Text('₹${p.mrp}', style: const TextStyle(fontSize: 10, color: Color(0xFF888888), decoration: TextDecoration.lineThrough)),
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 36,
-                        child: FilledButton(
-                          onPressed: out ? null : () async {
-                            await store.addToCart(p.id);
-                            if (context.mounted) toast(context, '${p.name} added to cart');
-                          },
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFFD4E684),
-                            disabledBackgroundColor: const Color(0xFFE7E7E4),
-                            foregroundColor: const Color(0xFF242424),
-                            disabledForegroundColor: const Color(0xFF777777),
-                            padding: EdgeInsets.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-                          ),
-                          child: Text(out ? 'Unavailable' : 'Add to cart', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+          child: horizontal
+              ? _horizontalContent(context, store, p, fav, out, rating, hasImg)
+              : _verticalContent(context, store, p, fav, out, rating, hasImg),
         ),
       ),
     );
   }
+
+  Widget _imagePanel(BuildContext context, StoreController store, Product p, bool fav, bool out, bool hasImg, {required bool horizontal}) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Container(
+          color: const Color(0xFFF4F4F2),
+          padding: const EdgeInsets.all(10),
+          child: hasImg
+              ? NetImage(url: p.images.first, fit: BoxFit.contain,
+                  fallback: iconFallback(store.iconKeyFor(p.category), size: 42))
+              : iconFallback(store.iconKeyFor(p.category), size: 42),
+        ),
+        if (p.discount > 0)
+          Positioned(
+            top: 8, left: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              decoration: BoxDecoration(color: const Color(0xFFD4E684), borderRadius: BorderRadius.circular(5)),
+              child: Text('${p.discount}% OFF', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF242424))),
+            ),
+          ),
+        Positioned(
+          bottom: 8, right: 8,
+          child: Material(
+            color: Colors.white, shape: const CircleBorder(), elevation: 2,
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => store.toggleFavourite(p.id),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Icon(fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    size: 19, color: fav ? const Color(0xFFE35D58) : const Color(0xFF242424)),
+              ),
+            ),
+          ),
+        ),
+        if (out)
+          Container(color: const Color(0x99FFFFFF), alignment: Alignment.center,
+            child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900))),
+      ],
+    );
+  }
+
+  Widget _details(BuildContext context, Product p, double rating, bool out, {required bool compact}) {
+    final title = Text(p.name, maxLines: compact ? 2 : 3, overflow: TextOverflow.ellipsis,
+      style: TextStyle(fontSize: compact ? 12 : 14, height: 1.2, fontWeight: FontWeight.w700, color: const Color(0xFF242424)));
+    final ratingRow = Row(children: [
+      const Icon(Icons.star_rounded, size: 15, color: Color(0xFFF07822)),
+      const SizedBox(width: 2),
+      Text(rating > 0 ? rating.toStringAsFixed(1) : 'New', style: const TextStyle(fontSize: 10.5, color: Color(0xFF555555), fontWeight: FontWeight.w700)),
+      const SizedBox(width: 4),
+      const Expanded(child: Text('Customer rating', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 9, color: Color(0xFF888888)))),
+    ]);
+    final price = Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+      Flexible(child: Text('₹${p.price}', maxLines: 1, overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontSize: compact ? 16 : 19, height: 1, fontWeight: FontWeight.w900, color: const Color(0xFF242424)))),
+      if (p.mrp > p.price) ...[
+        const SizedBox(width: 5),
+        Flexible(child: Padding(padding: const EdgeInsets.only(bottom: 1), child: Text('₹${p.mrp}', maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 10, color: Color(0xFF888888), decoration: TextDecoration.lineThrough)))),
+      ],
+    ]);
+    final button = SizedBox(
+      width: double.infinity, height: compact ? 32 : 36,
+      child: FilledButton(
+        onPressed: out ? null : () async {
+          final store = StoreScope.read(context);
+          await store.addToCart(p.id);
+          if (context.mounted) toast(context, '${p.name} added to cart');
+        },
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFFD4E684), disabledBackgroundColor: const Color(0xFFE7E7E4),
+          foregroundColor: const Color(0xFF242424), disabledForegroundColor: const Color(0xFF777777),
+          padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        ),
+        child: Text(out ? 'Unavailable' : 'Add to cart', style: TextStyle(fontSize: compact ? 10.5 : 12, fontWeight: FontWeight.w800)),
+      ),
+    );
+
+    if (compact) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(p.brand.isNotEmpty ? p.brand.toUpperCase() : (p.category.isNotEmpty ? p.category.toUpperCase() : 'FEATURED'),
+          maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 8.5, letterSpacing: .6, color: Color(0xFF777777), fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4), title,
+        const Spacer(), ratingRow, const SizedBox(height: 5), price, const SizedBox(height: 7), button,
+      ]);
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(p.brand.isNotEmpty ? p.brand.toUpperCase() : (p.category.isNotEmpty ? p.category.toUpperCase() : 'FEATURED'),
+        maxLines: 1, overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 9, letterSpacing: .7, color: Color(0xFF777777), fontWeight: FontWeight.w700)),
+      const SizedBox(height: 5), Expanded(child: title),
+      ratingRow, const SizedBox(height: 6), price, const SizedBox(height: 8), button,
+    ]);
+  }
+
+  Widget _horizontalContent(BuildContext context, StoreController store, Product p, bool fav, bool out, double rating, bool hasImg) => Row(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Expanded(flex: 40, child: _imagePanel(context, store, p, fav, out, hasImg, horizontal: true)),
+      Expanded(flex: 60, child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 11, 10),
+        child: _details(context, p, rating, out, compact: false),
+      )),
+    ],
+  );
+
+  Widget _verticalContent(BuildContext context, StoreController store, Product p, bool fav, bool out, double rating, bool hasImg) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      SizedBox(height: 132, child: _imagePanel(context, store, p, fav, out, hasImg, horizontal: false)),
+      Expanded(child: Padding(
+        padding: const EdgeInsets.fromLTRB(9, 8, 9, 9),
+        child: _details(context, p, rating, out, compact: true),
+      )),
+    ],
+  );
 }
 
 // Retained for any other screen that still uses a two-column product grid.
 SliverGridDelegate productGridDelegate() =>
-    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, mainAxisExtent: 252);
+    const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 11, mainAxisSpacing: 12, mainAxisExtent: 274);
 
 class FooterBlock extends StatelessWidget {
   const FooterBlock({super.key});

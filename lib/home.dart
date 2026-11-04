@@ -98,20 +98,50 @@ class HomeScreen extends StatelessWidget {
 
 
 // Amazon-style full-width product rows for mobile screens.
+// Mixed product feed: one full-width horizontal card followed by up to two
+// compact vertical cards. The layout decision is isolated here so it can later
+// be driven by the Admin/advertisement placement settings.
 Widget _productRows(List<Product> products, {int offset = 0, int? limit, double bottom = 10}) {
   final count = limit == null || limit > products.length ? products.length : limit;
+  final groups = (count / 3).ceil();
   return SliverPadding(
     padding: EdgeInsets.fromLTRB(14, 0, 14, bottom),
     sliver: SliverList(
       delegate: SliverChildBuilderDelegate(
-        (context, index) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: ProductCard(
-            product: products[(index + offset) % products.length],
-            index: index + offset,
-          ),
-        ),
-        childCount: count,
+        (context, groupIndex) {
+          final first = groupIndex * 3;
+          final remaining = count - first;
+          final firstProduct = products[(first + offset) % products.length];
+          final verticalCount = remaining - 1 >= 2 ? 2 : 0;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Column(children: [
+              ProductCard(product: firstProduct, index: first + offset, horizontal: true),
+              if (verticalCount > 0) ...[
+                const SizedBox(height: 10),
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: List.generate(verticalCount, (slot) {
+                  final itemIndex = first + 1 + slot;
+                  return Expanded(child: Padding(
+                    padding: EdgeInsets.only(left: slot == 0 ? 0 : 5, right: slot == 0 ? 5 : 0),
+                    child: ProductCard(
+                      product: products[(itemIndex + offset) % products.length],
+                      index: itemIndex + offset,
+                      horizontal: false,
+                    ),
+                  ));
+                })),
+              ] else if (remaining == 2) ...[
+                const SizedBox(height: 10),
+                ProductCard(
+                  product: products[(first + 1 + offset) % products.length],
+                  index: first + 1 + offset,
+                  horizontal: true,
+                ),
+              ],
+            ]),
+          );
+        },
+        childCount: groups,
       ),
     ),
   );
@@ -124,11 +154,11 @@ class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
   @override double get maxExtent => 64;
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => Container(
-    decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFE5EBDD), Color(0xFFF8F8F5)])),
+    decoration: const BoxDecoration(color: Color(0xFFF8F8F5)),
     padding: const EdgeInsets.fromLTRB(16, 7, 16, 9),
     child: Material(
-      color: const Color(0xFFFFFFFF), elevation: overlapsContent ? 2 : 0,
-      shadowColor: const Color(0x1A000000), borderRadius: BorderRadius.circular(25),
+      color: const Color(0xFFFFFFFF), elevation: 0,
+      shadowColor: Colors.transparent, borderRadius: BorderRadius.circular(25),
       child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(25),
         child: Container(height: 48, padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
