@@ -7,6 +7,8 @@ import 'store.dart';
 import 'widgets.dart';
 import 'home.dart';
 import 'admin.dart';
+import 'design.dart';
+import 'membership.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
@@ -116,6 +118,12 @@ class AccountScreen extends StatelessWidget {
             title: 'My orders',
             subtitle: s.orders.isEmpty ? 'No orders yet' : '${s.orders.length} orders · $active in progress',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrdersScreen())),
+          ),
+          _Row(
+            icon: Icons.workspace_premium_outlined,
+            title: 'Membership',
+            subtitle: s.isMember ? 'Active · ${s.memberDaysLeft} days left' : 'Free & faster delivery on every order',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MembershipScreen())),
           ),
           _Row(
             icon: Icons.favorite_border,
@@ -296,15 +304,22 @@ class OrdersScreen extends StatelessWidget {
   }
 }
 
-class OrderDetailScreen extends StatelessWidget {
+class OrderDetailScreen extends StatefulWidget {
   final String orderId;
   const OrderDetailScreen({super.key, required this.orderId});
+  @override
+  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  final GlobalKey _timelineKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
+    final orderId = widget.orderId;
     final s = StoreScope.of(context);
     final o = s.orderById(orderId);
-    if (o == null) return Scaffold(appBar: AppBar(title: const Text('Order')), body: const EmptyState(title: 'Order not found', subtitle: ''));
+    if (o == null) return Scaffold(appBar: AppBar(title: const Text('Details')), body: const EmptyState(title: 'Order not found', subtitle: ''));
     final status = '${o['status']}';
     final ac = accentOf(context);
     final history = ((o['history'] as List?) ?? const []).cast<Map>();
@@ -314,31 +329,47 @@ class OrderDetailScreen extends StatelessWidget {
       }
       return '';
     }
+    String dayFor(String st) => dateFor(st).split('  ').first;
 
     final cancelled = status == 'Cancelled';
     final steps = cancelled ? history.map((h) => '${h['status']}').toList() : orderSteps;
     final idx = orderSteps.indexOf(status);
     final canCancel = status == 'Placed' || status == 'Confirmed';
+    final itemsList = (o['items'] as List).cast<Map>();
+    final firstItem = itemsList.isEmpty ? '' : '${itemsList.first['name'] ?? 'Item'}';
+    final itemText = itemsList.length > 1 ? '$firstItem +${itemsList.length - 1} more' : firstItem;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Order #$orderId')),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: softBox(3, radius: 18),
-          child: Row(children: [
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(shortDate('${o['date']}'), style: const TextStyle(color: muted, fontSize: 12)),
-                const SizedBox(height: 4),
-                Text('₹${o['total']}  ·  ${o['payment']}', style: const TextStyle(fontWeight: FontWeight.w900)),
-              ]),
-            ),
-            StatusChip(status),
-          ]),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        centerTitle: true,
+        title: const Text('Details', style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
+      body: ListView(padding: const EdgeInsets.all(20), children: [
+        TrackingHeaderCard(orderId: orderId, status: status),
+        const SizedBox(height: 24),
+        ShipmentStepper(status: status, times: [dayFor('Placed'), dayFor('Shipped'), dayFor('Delivered')]),
+        const SizedBox(height: 24),
+        BlackButton(
+          label: 'Track Shipping',
+          icon: Icons.local_shipping_outlined,
+          onTap: () {
+            final c = _timelineKey.currentContext;
+            if (c != null) Scrollable.ensureVisible(c, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+          },
         ),
-        const SizedBox(height: 18),
-        const Text('Order status', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 24),
+        ShipmentDetailsCard(rows: [
+          DetailRow('Receiver', '${o['name'] ?? ''}'),
+          DetailRow('Address', '${o['address'] ?? ''}'),
+          DetailRow('Contact', '+91 ${o['phone'] ?? ''}'),
+          DetailRow('Item', itemText),
+          DetailRow('Payment', '${o['payment'] ?? ''}'),
+          DetailRow('Total', '₹${o['total']}'),
+        ]),
+        const SizedBox(height: 26),
+        Text('Order status', key: _timelineKey, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
         ...List.generate(steps.length, (i) {
           final st = steps[i];
@@ -375,8 +406,7 @@ class OrderDetailScreen extends StatelessWidget {
         const SizedBox(height: 8),
         const Text('Items', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
-        ...(o['items'] as List).map((raw) {
-          final it = raw as Map;
+        ...itemsList.map((it) {
           final extra = [if ('${it['size'] ?? ''}'.isNotEmpty) 'Size ${it['size']}', if ('${it['color'] ?? ''}'.isNotEmpty) '${it['color']}'].join(' · ');
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -398,10 +428,6 @@ class OrderDetailScreen extends StatelessWidget {
         if (((o['couponDiscount'] ?? 0) as num) > 0) PriceRow(label: 'Coupon ${o['coupon'] ?? ''}', value: '-₹${o['couponDiscount']}', color: success),
         if (o['shipping'] != null) PriceRow(label: 'Delivery', value: ((o['shipping'] as num) == 0) ? 'FREE' : '₹${o['shipping']}'),
         PriceRow(label: 'Total', value: '₹${o['total']}', bold: true),
-        const SizedBox(height: 18),
-        const Text('Delivery address', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 6),
-        Text('${o['name'] ?? ''}\n${o['address'] ?? ''}\n+91 ${o['phone'] ?? ''}', style: const TextStyle(color: Color(0xFF4B5563), height: 1.5, fontSize: 13)),
         if (status.toLowerCase() == 'delivered') ...[
           const SizedBox(height: 14),
           OutlinedButton.icon(onPressed: () async {

@@ -423,17 +423,18 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   icon: Icon(fav ? Icons.favorite : Icons.favorite_border, color: fav ? const Color(0xFFFF6B35) : ink))),
               const SizedBox(width: 8),
               Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 42), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                child: FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: Colors.black, minimumSize: const Size(0, 44), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   onPressed: inStock ? () => _addToCart(s, p) : null,
                   child: const Text('Add to cart'),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: FilledButton(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(foregroundColor: Colors.black, side: const BorderSide(color: Colors.black), minimumSize: const Size(0, 44), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   onPressed: inStock ? () => _buyNow(s, p) : null,
-                  child: Text(inStock ? 'Buy now' : 'Out of stock'),
+                  child: Text(inStock ? 'Buy it now' : 'Out of stock'),
                 ),
               ),
             ]),

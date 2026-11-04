@@ -127,43 +127,52 @@ class ProductCard extends StatelessWidget {
   const ProductCard({super.key, required this.product, this.index = 0});
   @override Widget build(BuildContext context) {
     final s = StoreScope.of(context); final p = product;
-    final fav = s.favourites.contains(p.id); final out = p.stock <= 0; final rating = s.ratingOf(p.id); final reviewCount = s.reviewsOf(p.id).length;
+    final fav = s.favourites.contains(p.id); final out = p.stock <= 0; final rating = s.ratingOf(p.id);
     final size = p.sizes.isEmpty ? '' : p.sizes[p.sizes.length ~/ 2];
     final color = p.colors.isEmpty ? '' : p.colors.first;
-    return GestureDetector(onTap: () => openProduct(context, p), child: Container(padding: const EdgeInsets.all(9),
+    final hasImg = p.images.isNotEmpty && p.images.first.trim().isNotEmpty;
+    return GestureDetector(onTap: () => openProduct(context, p), child: Container(padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE9E9E6)),
+        border: Border.all(color: const Color(0xFFEDEEF1)),
         boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 9, offset: Offset(0, 3))]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(height: 126, width: double.infinity, child: Stack(fit: StackFit.expand, children: [
-          ClipRRect(borderRadius: BorderRadius.circular(10), child: p.images.isNotEmpty && p.images.first.trim().isNotEmpty
-            ? NetImage(url: p.images.first, fit: BoxFit.cover, fallback: const ColoredBox(color: Colors.white))
-            : const ColoredBox(color: Colors.white)),
-          if (p.discount > 0) Positioned(top: 5, left: 5, child: Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5), decoration: BoxDecoration(color: const Color(0xFF35432D), borderRadius: BorderRadius.circular(8)), child: Text('${p.discount}% OFF', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900)))),
-          Positioned(top: 5, right: 5, child: Material(color: Colors.white.withOpacity(.96), shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: () => s.toggleFavourite(p.id), child: Padding(padding: const EdgeInsets.all(6), child: Icon(fav ? Icons.favorite : Icons.favorite_border, size: 15, color: fav ? const Color(0xFFE35D58) : ink))))),
+        // thumbnail: grey rounded box, category badge top-right
+        SizedBox(height: 120, width: double.infinity, child: Stack(fit: StackFit.expand, children: [
+          ClipRRect(borderRadius: BorderRadius.circular(12), child: Container(
+            color: const Color(0xFFF2F4F7),
+            padding: const EdgeInsets.all(6),
+            child: hasImg
+              ? NetImage(url: p.images.first, fit: BoxFit.contain, fallback: iconFallback(s.iconKeyFor(p.category), size: 34))
+              : iconFallback(s.iconKeyFor(p.category), size: 34))),
+          if (p.discount > 0) Positioned(top: 6, left: 6, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)), child: Text('${p.discount}% OFF', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900)))),
+          if (p.category.isNotEmpty) Positioned(top: 6, right: 6, child: Container(constraints: const BoxConstraints(maxWidth: 60), padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)), child: Text(p.category, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 8, color: Color(0xFF777777), fontWeight: FontWeight.w600)))),
+          Positioned(bottom: 6, right: 6, child: Material(color: Colors.white.withOpacity(.96), shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: () => s.toggleFavourite(p.id), child: Padding(padding: const EdgeInsets.all(5), child: Icon(fav ? Icons.favorite : Icons.favorite_border, size: 14, color: fav ? const Color(0xFFE35D58) : ink))))),
           if (out) Container(color: const Color(0x66FFFFFF), alignment: Alignment.center,
             child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: ink))),
         ])),
-        const SizedBox(height: 7),
+        const SizedBox(height: 8),
         Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
         const SizedBox(height: 3),
-        Row(children: [const Icon(Icons.star_rounded, size: 12, color: Color(0xFFF2B544)), const SizedBox(width: 3), Text(rating > 0 ? rating.toStringAsFixed(1) : 'New', style: const TextStyle(fontSize: 9, color: Color(0xFF777777), fontWeight: FontWeight.w700)), const SizedBox(width: 4), Text('($reviewCount reviews)', style: const TextStyle(fontSize: 9, color: Color(0xFF888888)))]),
-        const SizedBox(height: 4),
-        Text('₹${p.price}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
+        Row(children: [
+          const Icon(Icons.star_rounded, size: 12, color: Color(0xFFF2B544)), const SizedBox(width: 2),
+          Text(rating > 0 ? rating.toStringAsFixed(1) : 'New', style: const TextStyle(fontSize: 10, color: Color(0xFF777777), fontWeight: FontWeight.w700)),
+          const Spacer(),
+          Text('₹${p.price}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
+        ]),
         const Spacer(),
         Row(children: [
-          Expanded(child: SizedBox(height: 29, child: OutlinedButton(
+          Expanded(child: SizedBox(height: 28, child: OutlinedButton(
             onPressed: out ? null : () async { await s.addToCart(p.id, size: size, color: color); if (context.mounted) toast(context, 'Added to cart'); },
-            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 3), side: const BorderSide(color: Color(0xFF252525)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 3), side: const BorderSide(color: Color(0xFFBDBDBD)),
+              shape: const StadiumBorder(), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
             child: const FittedBox(child: Text('Add to Cart', style: TextStyle(fontSize: 9, color: Color(0xFF222222), fontWeight: FontWeight.w700)))))),
-          const SizedBox(width: 6),
-          Expanded(child: SizedBox(height: 29, child: FilledButton(
+          const SizedBox(width: 5),
+          Expanded(child: SizedBox(height: 28, child: FilledButton(
             onPressed: out ? null : () => openProduct(context, p),
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF202020), foregroundColor: Colors.white,
+            style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 3), tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7))),
+              shape: const StadiumBorder()),
             child: const FittedBox(child: Text('Buy Now', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700))))))
         ]),
       ])));

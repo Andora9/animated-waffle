@@ -9,6 +9,7 @@ import 'account.dart';
 import 'widgets.dart';
 import 'notifications.dart';
 import 'auth.dart';
+import 'design.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -190,13 +191,28 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int index = 0;
 
+  void _onTabRequest() {
+    final v = shellTab.value;
+    if (v >= 0 && mounted) {
+      setState(() => index = v);
+      shellTab.value = -1;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    shellTab.addListener(_onTabRequest);
     // auto-detect delivery PIN code on first launch
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) StoreScope.read(context).autoPinOnce();
     });
+  }
+
+  @override
+  void dispose() {
+    shellTab.removeListener(_onTabRequest);
+    super.dispose();
   }
 
   @override

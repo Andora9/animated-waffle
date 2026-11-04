@@ -7,6 +7,7 @@ import 'account.dart';
 import 'auth.dart';
 import 'config.dart';
 import 'pay.dart';
+import 'design.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -32,7 +33,15 @@ class _CartScreenState extends State<CartScreen> {
     final st = s.settings;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Your cart (${s.itemCount})')),
+      appBar: AppBar(
+        title: const Text('My Bag'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 18),
+            child: Center(child: Text('${s.itemCount} ${s.itemCount == 1 ? 'item' : 'items'}', style: const TextStyle(color: muted, fontSize: 12, fontWeight: FontWeight.w700))),
+          ),
+        ],
+      ),
       body: lines.isEmpty
           ? const EmptyState(title: 'Your cart is empty', subtitle: 'Explore the collection and add something you love.')
           : Column(children: [
@@ -44,7 +53,7 @@ class _CartScreenState extends State<CartScreen> {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.all(11),
-                      decoration: softBox(i, radius: 18),
+                      decoration: BoxDecoration(color: const Color(0xFFF7F7F9), borderRadius: BorderRadius.circular(16)),
                       child: Row(children: [
                         ProductThumb(product: p),
                         const SizedBox(width: 12),
@@ -151,7 +160,8 @@ class _CartScreenState extends State<CartScreen> {
                           s.endBuyNow();
                           Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckoutScreen()));
                         },
-                        child: const Text('Continue to checkout'),
+                        style: FilledButton.styleFrom(minimumSize: const Size(0, 50), backgroundColor: Colors.black, shape: const StadiumBorder()),
+                        child: const Text('Checkout', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ]),
@@ -321,6 +331,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       return;
                     }
                     final online = payment == 'Online payment';
+                    final paidTotal = s.total;
+                    final paymentLabel = online ? 'Online payment' : 'Cash on Delivery';
                     setState(() => busy = true);
                     await s.saveProfile(name: name.text.trim(), email: email.text.trim(), mobile: mobile.text.trim(), addr: addr.text.trim(), pin: pin.text.trim(), town: town.text.trim());
                     if (!AppConfig.supabaseReady || !s.isLoggedIn) {
@@ -381,7 +393,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     _checkoutRequestId = null;
                     if (!mounted) return;
                     setState(() => busy = false);
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessScreen(orderId: orderId)));
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessScreen(orderId: orderId, payment: paymentLabel, total: paidTotal)));
                   },
             child: Text(busy ? 'Placing order...' : 'Place order · ₹${s.total}'),
           ),
@@ -392,46 +404,86 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 }
 
 class OrderSuccessScreen extends StatelessWidget {
-  final String orderId;
-  const OrderSuccessScreen({super.key, required this.orderId});
+  final String orderId, payment;
+  final int total;
+  const OrderSuccessScreen({super.key, required this.orderId, this.payment = '', this.total = 0});
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Container(
-                width: 84,
-                height: 84,
-                decoration: BoxDecoration(color: accentOf(context), shape: BoxShape.circle),
-                child: const Icon(Icons.check_rounded, color: Colors.white, size: 46),
-              ),
-              const SizedBox(height: 22),
-              const Text('Order placed!', style: TextStyle(fontSize: 27, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 8),
-              Text('Order #$orderId', style: const TextStyle(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              const Text('Thank you for shopping with us.', textAlign: TextAlign.center, style: TextStyle(color: muted)),
-              const SizedBox(height: 25),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst), child: const Text('Continue shopping')),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () {
-                    final nav = Navigator.of(context);
-                    nav.popUntil((r) => r.isFirst);
-                    nav.push(MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: orderId)));
-                  },
-                  child: const Text('Track order'),
+    final s = StoreScope.of(context);
+    final o = s.orderById(orderId);
+    final pay = (o != null && '${o['payment'] ?? ''}'.isNotEmpty) ? '${o['payment']}' : payment;
+    final tot = (o != null && o['total'] != null) ? '${o['total']}' : '$total';
+    final when = shortDate((o != null && o['date'] != null) ? '${o['date']}' : DateTime.now().toIso8601String());
+
+    void home(int tab) {
+      Navigator.of(context).popUntil((r) => r.isFirst);
+      shellTab.value = tab;
+    }
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) home(0);
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFE9EAEC),
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(22, 12, 22, 22),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 30, offset: Offset(0, 10))],
                 ),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4))),
+                  const SizedBox(height: 22),
+                  const Icon(Icons.verified_rounded, color: kSuccessGreen, size: 68),
+                  const SizedBox(height: 14),
+                  const Text('Your order has been\nsuccessfully submitted',
+                      textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, height: 1.25)),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(color: kReceiptGrey, borderRadius: BorderRadius.circular(16)),
+                    child: Column(children: [
+                      ReceiptRow('Order ID', orderId),
+                      const Divider(height: 10),
+                      ReceiptRow('Payment Method', pay.isEmpty ? '-' : pay),
+                      const Divider(height: 10),
+                      ReceiptRow('Date & Time', when),
+                      const Divider(height: 10),
+                      ReceiptRow('Total', '₹$tot', bold: true),
+                    ]),
+                  ),
+                  const SizedBox(height: 20),
+                  BlackButton(label: 'Go to my account', height: 48, radius: 16, onTap: () => home(3)),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () {
+                          final nav = Navigator.of(context);
+                          nav.popUntil((r) => r.isFirst);
+                          nav.push(MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: orderId)));
+                        },
+                        child: const Text('Track order', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => home(0),
+                        child: const Text('Continue shopping', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ]),
+                ]),
               ),
-            ]),
+            ),
           ),
         ),
       ),

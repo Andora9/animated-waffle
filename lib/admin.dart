@@ -4,6 +4,7 @@ import 'store.dart';
 import 'widgets.dart';
 import 'config.dart';
 import 'admin_ops.dart';
+import 'design.dart';
 
 // ------------------------------------------------------------------ HELPERS
 Widget _tf(TextEditingController c, String label, {TextInputType? type, int lines = 1, String? hint}) => Padding(
@@ -163,7 +164,7 @@ class AdminHome extends StatelessWidget {
         _h('Manage'),
         menu(Icons.add_box_outlined, 'Products', 'Add, edit, stock, delete', 1, const AdminProductsScreen()),
         menu(Icons.grid_view_outlined, 'Categories', 'Home category slider', 3, const AdminCategoriesScreen()),
-        menu(Icons.view_carousel_outlined, 'Banners', 'Slider images and category links', 2, const AdminBannersScreen()),
+        menu(Icons.view_carousel_outlined, 'Banners', 'Home banner: text, image, link', 2, const AdminBannersScreen()),
         menu(Icons.receipt_long_outlined, 'Orders', 'View and update order status', 0, const AdminOrdersScreen()),
         menu(Icons.assignment_return_outlined, 'Returns & replacements', 'Return requests, pickup and decisions', 2, const AdminOpsScreen(title: 'Returns', table: 'return_requests', permission: 'returns.manage', statusField: 'status')),
         menu(Icons.payments_outlined, 'Refund management', 'Payout details, approval and refund records', 1, const AdminOpsScreen(title: 'Refunds', table: 'refund_records', permission: 'refunds.manage', statusField: 'status')),
@@ -507,12 +508,18 @@ class AdminBannersScreen extends StatelessWidget {
   Future<void> _edit(BuildContext context, StoreController s, {int? index}) async {
     final item = index == null ? null : s.banners[index];
     final url = TextEditingController(text: item?.image ?? '');
+    final tagC = TextEditingController(text: item?.tag ?? '');
+    final titleC = TextEditingController(text: item?.title ?? '');
+    final btnC = TextEditingController(text: item?.button ?? '');
     String link = item?.category ?? '';
     await adminSheet(
       context,
       title: item == null ? 'Add banner' : 'Edit banner ${index! + 1}',
       body: (setS) => [
-        _tf(url, 'Banner image URL', type: TextInputType.url),
+        _tf(tagC, 'Badge text', hint: 'Limited Offer'),
+        _tf(titleC, 'Headline', lines: 2, hint: 'First Purchase Enjoy a Special Offer'),
+        _tf(btnC, 'Button text', hint: 'Shop Now'),
+        _tf(url, 'Image URL (PNG shows on the right side)', type: TextInputType.url),
         const Text('On tap, open category', style: TextStyle(color: muted, fontSize: 12, fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         Wrap(spacing: 8, runSpacing: 8, children: [
@@ -523,10 +530,13 @@ class AdminBannersScreen extends StatelessWidget {
       ],
       onSave: () async {
         if (item == null) {
-          s.banners.add(BannerItem(image: url.text.trim(), category: link));
+          s.banners.add(BannerItem(image: url.text.trim(), category: link, tag: tagC.text.trim(), title: titleC.text.trim(), button: btnC.text.trim()));
         } else {
           item.image = url.text.trim();
           item.category = link;
+          item.tag = tagC.text.trim();
+          item.title = titleC.text.trim();
+          item.button = btnC.text.trim();
         }
         await s.commit();
         return null;
@@ -552,7 +562,7 @@ class AdminBannersScreen extends StatelessWidget {
               decoration: softBox(i + 1, radius: 18),
               clipBehavior: Clip.antiAlias,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                SizedBox(height: 110, width: double.infinity, child: NetImage(url: b.image, fallback: const SizedBox.expand())),
+                Padding(padding: const EdgeInsets.all(8), child: IgnorePointer(child: PromoBannerCard(tag: b.tag, title: b.title, button: b.button, image: b.image, height: 150))),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
                   child: Row(children: [
@@ -829,8 +839,9 @@ class AdminSettingsScreen extends StatefulWidget {
 }
 
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
-  late final TextEditingController appName, tagline, logoUrl, ship, free, eta, etaM, t1, p1, t2, p2, supp, wa, ret, footer, links;
+  late final TextEditingController appName, tagline, logoUrl, ship, free, eta, etaM, t1, p1, t2, p2, supp, wa, ret, footer, links, saleTitle, saleOffer, saleNote, saleHours;
   int accent = 0;
+  bool saleOn = false;
 
   @override
   void initState() {
@@ -853,11 +864,16 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     footer = TextEditingController(text: st.footerText);
     links = TextEditingController(text: st.footerLinks.map((l) => '${l['label']} | ${l['url']}').join('\n'));
     accent = st.accent;
+    saleOn = st.saleEnabled;
+    saleTitle = TextEditingController(text: st.saleTitle);
+    saleOffer = TextEditingController(text: st.saleOffer);
+    saleNote = TextEditingController(text: st.saleNote);
+    saleHours = TextEditingController();
   }
 
   @override
   void dispose() {
-    for (final c in [appName, tagline, logoUrl, ship, free, eta, etaM, t1, p1, t2, p2, supp, wa, ret, footer, links]) {
+    for (final c in [appName, tagline, logoUrl, ship, free, eta, etaM, t1, p1, t2, p2, supp, wa, ret, footer, links, saleTitle, saleOffer, saleNote, saleHours]) {
       c.dispose();
     }
     super.dispose();
@@ -882,7 +898,15 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       ..supportPhone = supp.text.trim()
       ..whatsapp = wa.text.trim()
       ..returnPolicy = ret.text.trim()
-      ..footerText = footer.text.trim();
+      ..footerText = footer.text.trim()
+      ..saleEnabled = saleOn
+      ..saleTitle = saleTitle.text.trim().isEmpty ? st.saleTitle : saleTitle.text.trim()
+      ..saleOffer = saleOffer.text.trim().isEmpty ? st.saleOffer : saleOffer.text.trim()
+      ..saleNote = saleNote.text.trim();
+    final hrs = int.tryParse(saleHours.text.trim());
+    if (hrs != null && hrs > 0) {
+      st.saleEndAt = DateTime.now().add(Duration(hours: hrs)).toUtc().toIso8601String();
+    }
     final parsed = <Map<String, String>>[];
     for (final line in links.text.split('\n')) {
       final i = line.indexOf('|');
@@ -940,6 +964,18 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           const SizedBox(width: 10),
           Expanded(child: _tf(etaM, 'Member days', type: TextInputType.number)),
         ]),
+        _h('Home sale banner'),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: saleOn,
+          onChanged: (v) => setState(() => saleOn = v),
+          title: const Text('Show sale banner on home', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+          subtitle: const Text('Off = home page par sale banner nahi dikhega', style: TextStyle(fontSize: 11, color: muted)),
+        ),
+        _tf(saleTitle, 'Sale title', hint: 'Mega Sale is Live!'),
+        _tf(saleOffer, 'Offer text', hint: '40% OFF'),
+        _tf(saleNote, 'Small note', hint: 'Limited time only'),
+        _tf(saleHours, 'Sale ends in (hours from now)', type: TextInputType.number, hint: 'Khali = countdown unchanged / no countdown'),
         _h('Support'),
         _tf(supp, 'Support phone number', type: TextInputType.phone),
         _tf(wa, 'WhatsApp number (optional)', type: TextInputType.phone),
