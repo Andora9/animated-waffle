@@ -94,13 +94,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             constraints: const BoxConstraints(minWidth: 46, minHeight: 44),
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
-              color: on ? const Color(0xFFFF7A3D) : const Color(0xFFF2F2F4),
+              color: on ? const Color(0xFFD4E684) : const Color(0xFFF8F8F6),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Center(
               widthFactor: 1,
               heightFactor: 1,
-              child: Text(x, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: on ? Colors.white : ink)),
+              child: Text(x, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: ink)),
             ),
           ),
         );
@@ -204,7 +204,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     final st = s.settings;
     final days = _chosenDays(s) == 0 ? (st.subDayOptions.contains(30) ? 30 : st.subDayOptions.first) : _chosenDays(s);
     final subPrice = p.price * (100 - st.subPct) ~/ 100;
-    const orange = Color(0xFFE5532D);
+    const orange = Color(0xFF242424);
     Widget radio(bool on) => Icon(on ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: on ? orange : const Color(0xFFA1A1AA), size: 22);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Padding(padding: EdgeInsets.only(top: 22, bottom: 12), child: Text('Purchase options', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
@@ -229,7 +229,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           decoration: BoxDecoration(
             color: subscribe ? const Color(0xFFFFF5F2) : Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: subscribe ? const Color(0xFFFF7A3D) : line, width: subscribe ? 1.4 : 1),
+            border: Border.all(color: subscribe ? const Color(0xFFD4E684) : line, width: subscribe ? 1.4 : 1),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
@@ -239,7 +239,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: const Color(0xFFFF5A36), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: const Color(0xFF242424), borderRadius: BorderRadius.circular(8)),
                 child: Text('SAVE ${st.subPct}%', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
               ),
             ]),
@@ -311,52 +311,45 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       body: Column(children: [
         Expanded(
           child: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
-            // ---- gallery (image fills the rounded frame)
-            AspectRatio(
-              aspectRatio: 1,
+            // ---- compact product gallery (mobile-first; no oversized hero image)
+            SizedBox(
+              height: 188,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(20),
                 child: Stack(fit: StackFit.expand, children: [
+                  Container(color: const Color(0xFFF8F8F6)),
                   PageView.builder(
                     controller: pager,
                     itemCount: imgCount,
                     onPageChanged: (v) => setState(() => page = v),
-                    itemBuilder: (c, i) => NetImage(
-                      url: p.images.isEmpty ? '' : p.images[i],
-                      fit: BoxFit.cover,
-                      fallback: Container(color: const Color(0xFFF5F5F5), child: iconFallback(s.iconKeyFor(p.category), size: 90)),
+                    itemBuilder: (c, i) => Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: NetImage(
+                        url: p.images.isEmpty ? '' : p.images[i],
+                        fit: BoxFit.contain,
+                        fallback: iconFallback(s.iconKeyFor(p.category), size: 76),
+                      ),
                     ),
                   ),
                   if (p.discount > 0)
-                    Positioned(
-                      left: 12, top: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
-                        child: Text('${p.discount}% OFF', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
-                      ),
+                    Positioned(left: 10, top: 10, child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(color: const Color(0xFFD4E684), borderRadius: BorderRadius.circular(20)),
+                      child: Text('${p.discount}% OFF', style: const TextStyle(color: Color(0xFF242424), fontSize: 10, fontWeight: FontWeight.w900)),
+                    )),
+                  Positioned(right: 10, top: 10, child: Material(
+                    color: Colors.white, shape: const CircleBorder(),
+                    child: InkWell(customBorder: const CircleBorder(), onTap: () => s.toggleFavourite(p.id),
+                      child: Padding(padding: const EdgeInsets.all(8), child: Icon(fav ? Icons.favorite : Icons.favorite_border, size: 19, color: fav ? const Color(0xFFE11D48) : ink)),
                     ),
-                  Positioned(
-                    right: 12, top: 12,
-                    child: Material(
-                      color: Colors.white, shape: const CircleBorder(), elevation: 2, shadowColor: const Color(0x33000000),
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: () => s.toggleFavourite(p.id),
-                        child: Padding(padding: const EdgeInsets.all(9), child: Icon(fav ? Icons.favorite : Icons.favorite_border, size: 20, color: fav ? const Color(0xFFE11D48) : ink)),
-                      ),
-                    ),
+                  )),
+                  if (imgCount > 1) Positioned(bottom: 8, left: 0, right: 0,
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(imgCount, (i) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 180), margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: page == i ? 16 : 5, height: 5,
+                      decoration: BoxDecoration(color: page == i ? const Color(0xFF242424) : Colors.black26, borderRadius: BorderRadius.circular(8)),
+                    ))),
                   ),
-                  if (imgCount > 1)
-                    Positioned(
-                      left: 0, right: 0, bottom: 13,
-                      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(imgCount, (i) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: page == i ? 18 : 6, height: 6,
-                        decoration: BoxDecoration(color: page == i ? Colors.black : Colors.white70, borderRadius: BorderRadius.circular(8)),
-                      ))),
-                    ),
                 ]),
               ),
             ),
@@ -390,7 +383,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             Row(children: [
               Expanded(child: Text(p.category.isNotEmpty ? p.category : p.brand, style: const TextStyle(color: muted, fontSize: 12.5))),
               if (rating > 0) ...[
-                const Icon(Icons.star_rounded, size: 16, color: Color(0xFFFF7A3D)),
+                const Icon(Icons.star_rounded, size: 16, color: Color(0xFF242424)),
                 const SizedBox(width: 3),
                 Text('(${rating.toStringAsFixed(1)})', style: const TextStyle(color: muted, fontSize: 12.5)),
               ] else

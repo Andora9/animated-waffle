@@ -49,7 +49,7 @@ class _CartScreenState extends State<CartScreen> {
         onTap: onTap,
         child: Container(
           width: 26, height: 26,
-          decoration: BoxDecoration(color: primary ? const Color(0xFFFF7A3D) : const Color(0xFFE4E4E7), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: primary ? const Color(0xFFD4E684) : const Color(0xFFE4E4E7), shape: BoxShape.circle),
           child: Icon(icon, size: 15, color: primary ? Colors.white : ink),
         ),
       );
@@ -77,13 +77,13 @@ class _CartScreenState extends State<CartScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
-        decoration: BoxDecoration(color: const Color(0xFFFFE9E0), borderRadius: BorderRadius.circular(18)),
+        decoration: BoxDecoration(color: const Color(0xFFF8F8F6), borderRadius: BorderRadius.circular(18)),
         child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFE5532D)),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: const Color(0xFFF7F7F9), borderRadius: BorderRadius.circular(18)),
+        decoration: BoxDecoration(color: const Color(0xFFF8F8F6), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFEAEAE6))),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           GestureDetector(
             onTap: () => openProduct(context, p),
@@ -117,7 +117,7 @@ class _CartScreenState extends State<CartScreen> {
                     if (l.subDays > 0)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(color: const Color(0xFFFFEDE5), borderRadius: BorderRadius.circular(6)),
+                        decoration: BoxDecoration(color: const Color(0xFFF8F8F6), borderRadius: BorderRadius.circular(6)),
                         child: Text('Every ${l.subDays} days', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFE5532D))),
                       ),
                   ]),
@@ -168,7 +168,7 @@ class _CartScreenState extends State<CartScreen> {
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(value: progress, minHeight: 6, backgroundColor: const Color(0xFFE5E7EB), color: const Color(0xFFFF7A3D)),
+            child: LinearProgressIndicator(value: progress, minHeight: 6, backgroundColor: const Color(0xFFE5E7EB), color: const Color(0xFFD4E684)),
           ),
         ],
       ]),
@@ -223,7 +223,7 @@ class _CartScreenState extends State<CartScreen> {
             ),
             const SizedBox(width: 8),
             FilledButton(
-              style: FilledButton.styleFrom(minimumSize: const Size(76, 46), backgroundColor: Colors.black),
+              style: FilledButton.styleFrom(minimumSize: const Size(76, 46), backgroundColor: const Color(0xFF242424)),
               onPressed: () => _apply(s, code.text),
               child: const Text('Apply'),
             ),
@@ -282,8 +282,8 @@ class _CartScreenState extends State<CartScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Text('My Bag'),
+        backgroundColor: const Color(0xFFF8F8F6),
+        title: const Text('Shopping cart'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 18),
@@ -303,7 +303,7 @@ class _CartScreenState extends State<CartScreen> {
                   const Text('Explore the collection and add something you love.', textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 12.5)),
                   const SizedBox(height: 18),
                   FilledButton(
-                    style: FilledButton.styleFrom(backgroundColor: Colors.black, minimumSize: const Size(170, 46), shape: const StadiumBorder()),
+                    style: FilledButton.styleFrom(backgroundColor: const Color(0xFF242424), minimumSize: const Size(170, 46), shape: const StadiumBorder()),
                     onPressed: () {
                       if (canPop) {
                         Navigator.of(context).pop();
@@ -345,7 +345,7 @@ class _CartScreenState extends State<CartScreen> {
                       child: SizedBox(
                         height: 52,
                         child: FilledButton(
-                          style: FilledButton.styleFrom(backgroundColor: Colors.black, shape: const StadiumBorder()),
+                          style: FilledButton.styleFrom(backgroundColor: const Color(0xFF242424), shape: const StadiumBorder()),
                           onPressed: () async {
                             if (!await ensureLogin(context)) return;
                             if (!context.mounted) return;
@@ -403,6 +403,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
+  Widget _checkoutProgress() {
+    Widget step(String label, int number, {bool done = false, bool active = false}) => Expanded(child: Column(children: [
+      Container(width: 28, height: 28, decoration: BoxDecoration(
+        color: done ? const Color(0xFFD4E684) : (active ? const Color(0xFF242424) : Colors.white),
+        shape: BoxShape.circle, border: Border.all(color: done || active ? const Color(0xFFD4E684) : const Color(0xFFE4E4E0))),
+        child: Center(child: done ? const Icon(Icons.check, size: 16, color: Color(0xFF242424)) : Text('$number', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: active ? Colors.white : const Color(0xFF777777)))),
+      ),
+      const SizedBox(height: 5), Text(label, style: TextStyle(fontSize: 10.5, fontWeight: active || done ? FontWeight.w800 : FontWeight.w500, color: const Color(0xFF242424))),
+    ]));
+    return Container(margin: const EdgeInsets.only(bottom: 18), padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 8),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFEAEAE6))),
+      child: Row(children: [step('Account', 1, done: true), const Icon(Icons.chevron_right, size: 17, color: Color(0xFFD4E684)), step('Delivery', 2, done: true), const Icon(Icons.chevron_right, size: 17, color: Color(0xFFD4E684)), step('Payment', 3, active: true), const Icon(Icons.chevron_right, size: 17, color: Colors.black26), step('Review', 4)]),
+    );
+  }
+
   Widget _field(TextEditingController c, String label, IconData icon,
       {TextInputType? type, bool required = true, String? Function(String?)? validator, void Function(String)? onChanged}) {
     return Padding(
@@ -413,6 +428,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         onChanged: onChanged,
         validator: validator ?? (v) => required && (v == null || v.trim().isEmpty) ? 'This field is required' : null,
         decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, size: 19)),
+      ),
+    );
+  }
+
+  Widget _paymentOption(String value, String subtitle, IconData icon) {
+    final selected = payment == value;
+    return InkWell(onTap: () => setState(() => payment = value), borderRadius: BorderRadius.circular(15),
+      child: AnimatedContainer(duration: const Duration(milliseconds: 160), padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: selected ? const Color(0xFFF8F8F6) : Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: selected ? const Color(0xFF242424) : const Color(0xFFE6E6E2), width: selected ? 1.5 : 1)),
+        child: Row(children: [Container(width: 38, height: 38, decoration: const BoxDecoration(color: Color(0xFFF0F1EB), shape: BoxShape.circle), child: Icon(icon, size: 19, color: const Color(0xFF242424))), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(value, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)), const SizedBox(height: 3), Text(subtitle, style: const TextStyle(color: Color(0xFF777777), fontSize: 11.5))])), Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off, color: selected ? const Color(0xFF242424) : Colors.black38, size: 21)]),
       ),
     );
   }
@@ -429,10 +454,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget build(BuildContext context) {
     final s = StoreScope.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Checkout')),
+      appBar: AppBar(title: const Text('Checkout'), backgroundColor: const Color(0xFFF8F8F6)),
       body: Form(
         key: form,
-        child: ListView(padding: const EdgeInsets.all(18), children: [
+        child: ListView(padding: const EdgeInsets.all(16), children: [
+          _checkoutProgress(),
           if (widget.buyNow) ...[
             const Text('Buying', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
             const SizedBox(height: 10),
@@ -483,22 +509,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           const SizedBox(height: 12),
           const Text('Payment method', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
-          RadioListTile<String>(
-            contentPadding: EdgeInsets.zero,
-            value: 'Cash on Delivery',
-            groupValue: payment,
-            onChanged: (v) => setState(() => payment = v!),
-            title: const Text('Cash on Delivery'),
-            subtitle: const Text('Pay when your order arrives'),
-          ),
-          RadioListTile<String>(
-            contentPadding: EdgeInsets.zero,
-            value: 'Online payment',
-            groupValue: payment,
-            onChanged: (v) => setState(() => payment = v!),
-            title: const Text('Pay online'),
-            subtitle: const Text('UPI, cards, netbanking, wallets (Razorpay)'),
-          ),
+          _paymentOption('Cash on Delivery', 'Pay when you receive your order', Icons.account_balance_wallet_outlined),
+          const SizedBox(height: 10),
+          _paymentOption('Online payment', 'UPI, credit/debit cards, netbanking and wallets', Icons.credit_card_outlined),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(15),

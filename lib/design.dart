@@ -6,14 +6,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'widgets.dart';
 
-const Color kBrandGreen = Color(0xFFA4D65E);
+const Color kBrandGreen = Color(0xFFD4E684);
+const Color kSurface = Color(0xFFF8F8F6);
+const Color kInk = Color(0xFF242424);
 const Color kInfoBg = Color(0xFFE8F0FE);
 const Color kInfoFg = Color(0xFF1967D2);
-const Color kCardGrey = Color(0xFFF5F7FA);
-const Color kThumbGrey = Color(0xFFF2F4F7);
+const Color kCardGrey = Color(0xFFF8F8F6);
+const Color kThumbGrey = Color(0xFFF8F8F6);
 const Color kReceiptGrey = Color(0xFFF8F9FA);
 const Color kSuccessGreen = Color(0xFF4CD964);
-const Color kBlack = Color(0xFF000000);
+const Color kBlack = Color(0xFF242424);
 
 /// Kahin se bhi `shellTab.value = 3` karo to bottom tab Account par chala jata hai.
 final ValueNotifier<int> shellTab = ValueNotifier<int>(-1);
